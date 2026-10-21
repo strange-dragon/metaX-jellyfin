@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>MetaX</title>
+</head>
+
+<body>
+<div class="page type-interior pluginConfigurationPage MetaXConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-linkbutton" data-role="page">
+    <div data-role="content">
+        <div class="content-primary">
+
+            <h1>MetaX</h1>
+
+            <div class="readOnlyContent">
+                <p class="description1">MetaX Plugin for Jellyfin. Provider cookies and library category routing are configured here.</p>
+            </div>
+
+            <form class="MetaXConfigurationForm">
+
+                <div class="verticalSection">
+                    <h2>General</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtServer">Server:</label>
+                        <input id="txtServer" is="emby-input" name="txtServer" pattern="^https?://.+$" required
+                               type="text"/>
+                        <div class="fieldDescription">Full url of the MetaX Server, HTTPS protocol is recommended.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtToken">Token:</label>
+                        <input id="txtToken" is="emby-input" name="txtToken" type="text"/>
+                        <div class="fieldDescription">Access token for the MetaX Server, or blank if no token is set by the backend.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableCollections" is="emby-checkbox" name="chkEnableCollections" type="checkbox"/>
+                            <span>Enable collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Automatically create collections by series.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableDirectors" is="emby-checkbox" name="chkEnableDirectors" type="checkbox"/>
+                            <span>Enable directors</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Add directors to corresponding video metadata.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableRatings" is="emby-checkbox" name="chkEnableRatings" type="checkbox"/>
+                            <span>Enable ratings</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Display community ratings from the original website.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableTrailers" is="emby-checkbox" name="chkEnableTrailers" type="checkbox"/>
+                            <span>Enable trailers</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Generate online video trailers in strm format.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableRealActorNames" is="emby-checkbox" name="chkEnableRealActorNames" type="checkbox"/>
+                            <span>Enable real actor names</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Search and replace with real actor names from AVBASE.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Provider cookies</h2>
+
+                    <p class="fieldDescription">
+                        Cookies are stored only in this plugin and sent to the MetaX server on the matching
+                        request. Values are never written to logs, metadata, or URLs. Leave a field blank to
+                        disable it. Provider names are loaded from the server when available.
+                    </p>
+                    <p id="providerCatalogWarning" class="fieldDescription" style="display:none;color:#b00020;"></p>
+                    <p id="providerCookieLimitWarning" class="fieldDescription" style="display:none;color:#b00020;"></p>
+
+                    <div id="providerCookieRows"></div>
+
+                    <div class="inputContainer">
+                        <button id="btnAddProviderCookie" is="emby-button" type="button" class="raised">
+                            <span>Add provider</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Library categories</h2>
+
+                    <p class="fieldDescription">
+                        Map each Jellyfin library to the metaX content category used for scraping. The plugin
+                        sends only the cookies for providers in that category. Unmapped libraries use the server's
+                        environment-cookie fallback.
+                    </p>
+                    <p id="libraryCategoryWarning" class="fieldDescription" style="display:none;color:#b00020;"></p>
+
+                    <div id="libraryCategoryRows"></div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Badge</h2>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableBadges" is="emby-checkbox" name="chkEnableBadges" type="checkbox"/>
+                            <span>Enable badges</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Add Chinese subtitle badges to primary images.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtBadgeUrl">Badge url:</label>
+                        <input id="txtBadgeUrl" is="emby-input" name="txtBadgeUrl" type="text"/>
+                        <div class="fieldDescription">Custom badge url, PNG format is recommended. (default: zimu.png)</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Image</h2>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtPrimaryImageRatio">Primary image ratio:</label>
+                        <input id="txtPrimaryImageRatio" is="emby-input" name="txtPrimaryImageRatio" step="any" type="number"/>
+                        <div class="fieldDescription">Aspect ratio for primary images, set a negative value to use the default.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtDefaultImageQuality">Default image quality:</label>
+                        <input id="txtDefaultImageQuality" is="emby-input" max="100" min="0" name="txtDefaultImageQuality" step="1" type="number"/>
+                        <div class="fieldDescription">Default compression quality for JPEG images, set between 0 and 100. (default: 90)</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Provider</h2>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableMovieProviderFilter" is="emby-checkbox" name="chkEnableMovieProviderFilter" type="checkbox"/>
+                            <span>Enable movie provider filter</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Filter and reorder search results from movie providers.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtRawMovieProviderFilter">Movie provider filter:</label>
+                        <input id="txtRawMovieProviderFilter" is="emby-input" name="txtRawMovieProviderFilter" type="text"/>
+                        <div class="fieldDescription">Provider names are case-insensitive, with decreasing precedence from left to right, separated by commas.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Template</h2>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableTemplate" is="emby-checkbox" name="chkEnableTemplate" type="checkbox"/>
+                            <span>Enable template</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Template variables: {provider}, {id}, {number}, {title}, {series}, {maker}, {label}, {director}, {actors}, {first_actor}, {year}, {month}, {date}.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtNameTemplate">Name template:</label>
+                        <input id="txtNameTemplate" is="emby-input" name="txtNameTemplate" type="text"/>
+                        <div class="fieldDescription"></div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtTaglineTemplate">Tagline template:</label>
+                        <input id="txtTaglineTemplate" is="emby-input" name="txtTaglineTemplate" type="text"/>
+                        <div class="fieldDescription"></div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Translation</h2>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel selectLabelText" for="selectTranslationMode">Translation mode:</label>
+                        <select class="emby-select-withcolor emby-select selectTranslationMode" id="selectTranslationMode" is="emby-select" name="selectTranslationMode">
+                            <option value="Disabled">Disabled</option>
+                            <option value="Title">Title</option>
+                            <option value="Summary">Summary</option>
+                            <option value="Both">Title and Summary</option>
+                        </select>
+                    </div>
+
+                    <div class="selectTranslationModeEnabled">
+                        <div class="selectContainer">
+                            <label class="selectLabel selectLabelText" for="selectTranslationEngine">Translation engine:</label>
+                            <select class="emby-select-withcolor emby-select selectTranslationEngine" id="selectTranslationEngine" is="emby-select" name="selectTranslationEngine">
+                                <option value="Baidu">Baidu</option>
+                                <option value="Google">Google</option>
+                                <option value="GoogleFree">Google (Free)</option>
+                                <option value="DeepL">DeepL</option>
+                                <option value="OpenAi">OpenAI</option>
+                            </select>
+                        </div>
+
+                        <div class="selectTranslationEngineBaidu">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtBaiduAppId">Baidu app id:</label>
+                                <input id="txtBaiduAppId" is="emby-input" name="txtBaiduAppId" type="text"/>
+                                <div class="fieldDescription"></div>
+                            </div>
+
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtBaiduAppKey">Baidu app key:</label>
+                                <input id="txtBaiduAppKey" is="emby-input" name="txtBaiduAppKey" type="text"/>
+                                <div class="fieldDescription"></div>
+                            </div>
+                        </div>
+
+                        <div class="selectTranslationEngineGoogle">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtGoogleApiKey">Google api key:</label>
+                                <input id="txtGoogleApiKey" is="emby-input" name="txtGoogleApiKey" type="text"/>
+                                <div class="fieldDescription"></div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtGoogleApiUrl">Google api url:</label>
+                                <input id="txtGoogleApiUrl" is="emby-input" name="txtGoogleApiUrl" type="text"/>
+                                <div class="fieldDescription">Custom Google translate api url. (optional)</div>
+                            </div>
+                        </div>
+
+                        <div class="selectTranslationEngineDeepL">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtDeepLApiKey">DeepL api key:</label>
+                                <input id="txtDeepLApiKey" is="emby-input" name="txtDeepLApiKey" type="text"/>
+                                <div class="fieldDescription"></div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtDeepLApiUrl">DeepL api url:</label>
+                                <input id="txtDeepLApiUrl" is="emby-input" name="txtDeepLApiUrl" type="text"/>
+                                <div class="fieldDescription">Custom DeepL-compatible api url. (optional)</div>
+                            </div>
+                        </div>
+
+                        <div class="selectTranslationEngineOpenAi">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtOpenAiApiKey">OpenAI api key:</label>
+                                <input id="txtOpenAiApiKey" is="emby-input" name="txtOpenAiApiKey" type="text"/>
+                                <div class="fieldDescription"></div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtOpenAiApiUrl">OpenAI api url:</label>
+                                <input id="txtOpenAiApiUrl" is="emby-input" name="txtOpenAiApiUrl" type="text"/>
+                                <div class="fieldDescription">Custom OpenAI-compatible api url. (optional)</div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="txtOpenAiModel">OpenAI model:</label>
+                                <input id="txtOpenAiModel" is="emby-input" name="txtOpenAiModel" type="text"/>
+                                <div class="fieldDescription">Custom OpenAI-compatible api model. (optional)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Substitution</h2>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableTitleSubstitution" is="emby-checkbox" name="chkEnableTitleSubstitution" type="checkbox"/>
+                            <span>Enable title substitution</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription"></div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtTitleRawSubstitutionTable">Title substitution table:</label>
+                        <textarea class="emby-input" id="txtTitleRawSubstitutionTable" is="emby-input" name="txtTitleRawSubstitutionTable" rows="5"></textarea>
+                        <div class="fieldDescription">One record per line, separated by equal signs. Leave the target substring blank to delete the source substring.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableActorSubstitution" is="emby-checkbox" name="chkEnableActorSubstitution" type="checkbox"/>
+                            <span>Enable actor substitution</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription"></div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtActorRawSubstitutionTable">Actor substitution table:</label>
+                        <textarea class="emby-input" id="txtActorRawSubstitutionTable" is="emby-input" name="txtActorRawSubstitutionTable" rows="5"></textarea>
+                        <div class="fieldDescription">One record per line, separated by equal signs. Leave the target actor blank to delete the source actor.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableGenreSubstitution" is="emby-checkbox" name="chkEnableGenreSubstitution" type="checkbox"/>
+                            <span>Enable genre substitution</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription"></div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabel-float inputLabelUnfocused" for="txtGenreRawSubstitutionTable">Genre substitution table:</label>
+                        <textarea class="emby-input" id="txtGenreRawSubstitutionTable" is="emby-input" name="txtGenreRawSubstitutionTable" rows="5"></textarea>
+                        <div class="fieldDescription">One record per line, separated by equal signs. Leave the target genre blank to delete the source genre.</div>
+                    </div>
+                </div>
+
+                <div>
+                    <button class="raised button-submit block" is="emby-button" type="submit">
+                        <span>Save</span></button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var MetaXPluginConfig = {
+            pluginUniqueId: "5597841f-fe55-4d59-991e-c3bdbf7d8d1d"
+        };
+
+        var metaXCategories = [
+            { value: "", label: "Not mapped" },
+            { value: "censored", label: "Censored" },
+            { value: "uncensored", label: "Uncensored (including FC2)" },
+            { value: "chinese", label: "Chinese" },
+            { value: "amateur", label: "Amateur" },
+            { value: "western", label: "Western" },
+            { value: "hentai", label: "Hentai" }
+        ];
+
+        function metaXNormalizeCategory(category) {
+            var value = (category || "").trim().toLowerCase();
+            if (value === "fc2") return "uncensored";
+            if (value === "animation") return "hentai";
+            return value;
+        }
+
+        function metaXCategoryOptions(selected) {
+            var normalized = metaXNormalizeCategory(selected);
+            var html = "";
+            metaXCategories.forEach(function (item) {
+                html += '<option value="' + item.value + '"' +
+                    (item.value === normalized ? ' selected' : '') + '>' + item.label + '</option>';
+            });
+            return html;
+        }
+
+        function metaXUpdateProviderCookieLimit(page) {
+            var cookies = {};
+            $('.providerCookieRow', page).each(function () {
+                var provider = ($(this).find('.providerCookieName').val() || "").trim();
+                var cookie = ($(this).find('.providerCookieValue').val() || "").trim();
+                if (provider && cookie) cookies[provider] = cookie;
+            });
+
+            var json = JSON.stringify(cookies);
+            var bytes = typeof TextEncoder !== "undefined"
+                ? new TextEncoder().encode(json).length
+                : unescape(encodeURIComponent(json)).length;
+            var warning = $('#providerCookieLimitWarning', page).removeData('block');
+            if (bytes > 16 * 1024) {
+                warning.text('The configured provider cookie dictionary is ' + bytes +
+                    ' bytes, over the 16 KiB request-header limit. Remove or shorten entries before saving.')
+                    .data('block', true).show();
+            } else if (bytes > 12 * 1024) {
+                warning.text('The configured provider cookie dictionary is ' + bytes +
+                    ' bytes and is approaching the 16 KiB request-header limit.').show();
+            } else {
+                warning.hide();
+            }
+        }
+
+        function metaXCreateProviderCookieRow(provider, cookie, editable) {
+            var row = $('<div class="providerCookieRow" style="margin-bottom:0.8em;"></div>');
+            var name = $('<input is="emby-input" type="text" class="providerCookieName" />').val(provider || "");
+            name.prop('readonly', !editable);
+            if (!editable) name.attr('title', 'Provider name from the MetaX server');
+
+            var value = $('<input is="emby-input" type="password" autocomplete="new-password" class="providerCookieValue" />')
+                .val(cookie || "");
+            value.attr('placeholder', 'Cookie value');
+
+            var clear = $('<button is="emby-button" type="button" class="raised" style="margin-left:0.5em;">Clear</button>');
+            clear.on('click', function () {
+                value.val('');
+                metaXUpdateProviderCookieLimit(row.closest('.MetaXConfigurationPage'));
+                return false;
+            });
+
+            var valueRow = $('<div style="display:flex;align-items:center;gap:0.5em;"></div>');
+            valueRow.append(value).append(clear);
+
+            row.append($('<label class="inputLabel inputLabelUnfocused">Provider</label>'));
+            row.append(name);
+            row.append($('<label class="inputLabel inputLabelUnfocused" style="margin-top:0.5em;">Cookie</label>'));
+            row.append(valueRow);
+            return row;
+        }
+
+        function metaXRenderProviderCookieRows(page, names, config) {
+            var container = $('#providerCookieRows', page).empty();
+            var configured = {};
+            (config.ProviderCookies || []).forEach(function (entry) {
+                var provider = (entry.Provider || "").trim();
+                if (!provider) return;
+                configured[provider.toLowerCase()] = {
+                    provider: provider,
+                    cookie: entry.Cookie || ""
+                };
+            });
+
+            var seen = {};
+            (names || []).forEach(function (name) {
+                var key = name.toLowerCase();
+                if (seen[key]) return;
+                seen[key] = true;
+                var entry = configured[key];
+                container.append(metaXCreateProviderCookieRow(name, entry ? entry.cookie : "", false));
+            });
+
+            Object.keys(configured).forEach(function (key) {
+                if (seen[key]) return;
+                seen[key] = true;
+                container.append(metaXCreateProviderCookieRow(
+                    configured[key].provider, configured[key].cookie, false));
+            });
+
+            if (!container.children().length) {
+                container.append(metaXCreateProviderCookieRow("", "", true));
+            }
+
+            metaXUpdateProviderCookieLimit(page);
+        }
+
+        function metaXLoadProviderCatalog(page, config) {
+            var warning = $('#providerCatalogWarning', page).hide();
+            var renderFallback = function (message) {
+                warning.text(message).show();
+                var configuredNames = (config.ProviderCookies || [])
+                    .map(function (entry) { return (entry.Provider || "").trim(); })
+                    .filter(function (name) { return !!name; });
+                metaXRenderProviderCookieRows(page, configuredNames, config);
+            };
+
+            return ApiClient.getJSON(ApiClient.getUrl('Plugins/MetaX/Providers')).then(function (catalog) {
+                var names = {};
+                var movieProviders = catalog.MovieProviders || catalog.movieProviders || [];
+                var actorProviders = catalog.ActorProviders || catalog.actorProviders || [];
+                var routeProviders = catalog.RouteProviders || catalog.routeProviders || {};
+                movieProviders.forEach(function (name) { names[name] = true; });
+                actorProviders.forEach(function (name) { names[name] = true; });
+                Object.keys(routeProviders).forEach(function (category) {
+                    (routeProviders[category] || []).forEach(function (name) { names[name] = true; });
+                });
+
+                metaXRenderProviderCookieRows(page, Object.keys(names).sort(), config);
+                var manifestAvailable = catalog.ManifestAvailable;
+                if (typeof manifestAvailable === "undefined") manifestAvailable = catalog.manifestAvailable;
+                var transportVersion = catalog.CookieTransportVersion || catalog.cookieTransportVersion;
+                if (manifestAvailable === false) {
+                    warning.text('The MetaX server did not return /v1/metax/status; category-scoped cookies will be omitted until the manifest is available.').show();
+                } else if (transportVersion !== "1") {
+                    warning.text('The MetaX server does not advertise cookie transport version 1. Verify the server version before relying on per-request cookies.').show();
+                } else {
+                    warning.hide();
+                }
+                return true;
+            }, function () {
+                renderFallback('Unable to load the MetaX provider catalog. Configured provider names are shown; check the server URL and token.');
+                return false;
+            });
+        }
+
+        function metaXCreateLibraryCategoryRow(id, label, selected) {
+            var row = $('<div class="libraryCategoryRow" style="margin-bottom:0.8em;"></div>')
+                .attr('data-library-id', id);
+            row.append($('<label class="inputLabel inputLabelUnfocused"></label>').text(label));
+            row.append($('<select is="emby-select" class="libraryCategorySelect"></select>')
+                .html(metaXCategoryOptions(selected)));
+            return row;
+        }
+
+        function metaXLoadLibraries(page, config) {
+            var container = $('#libraryCategoryRows', page).empty();
+            var warning = $('#libraryCategoryWarning', page).hide();
+            var mappings = {};
+            (config.LibraryCategories || []).forEach(function (entry) {
+                var id = (entry.LibraryId || "").trim();
+                if (id) {
+                    mappings[id.toLowerCase()] = {
+                        id: id,
+                        category: metaXNormalizeCategory(entry.Category)
+                    };
+                }
+            });
+
+            return ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (libraries) {
+                var seen = {};
+                (libraries || []).forEach(function (library) {
+                    var id = library.ItemId || library.itemId || library.Id || library.id;
+                    if (!id) return;
+                    seen[id.toLowerCase()] = true;
+                    var mapping = mappings[id.toLowerCase()];
+                    var name = library.Name || library.name || id;
+                    container.append(metaXCreateLibraryCategoryRow(
+                        id, name + ' (library)', mapping ? mapping.category : ''));
+                });
+
+                Object.keys(mappings).forEach(function (key) {
+                    if (seen[key]) return;
+                    container.append(metaXCreateLibraryCategoryRow(
+                        mappings[key].id, 'Unknown library ' + mappings[key].id, mappings[key].category));
+                });
+
+                if (!container.children().length) {
+                    warning.text('No Jellyfin libraries were returned. Create a library before mapping categories.').show();
+                }
+                return true;
+            }, function () {
+                warning.text('Unable to read Jellyfin libraries. Existing mappings are shown and will be kept on save.').show();
+                Object.keys(mappings).forEach(function (key) {
+                    container.append(metaXCreateLibraryCategoryRow(
+                        mappings[key].id, 'Library ' + mappings[key].id, mappings[key].category));
+                });
+                return false;
+            });
+        }
+
+        $('.selectTranslationMode').on('change', function (_) {
+            if (this.value === "Disabled") {
+                $('.selectTranslationModeEnabled').css('display', 'none');
+            } else {
+                $('.selectTranslationModeEnabled').css('display', 'inherit');
+            }
+        });
+
+        $('.selectTranslationEngine').on('change', function (_) {
+            if (this.value === "Baidu") {
+                $('.selectTranslationEngineBaidu').css('display', 'inherit');
+                $('.selectTranslationEngineGoogle').css('display', 'none');
+                $('.selectTranslationEngineDeepL').css('display', 'none');
+                $('.selectTranslationEngineOpenAi').css('display', 'none');
+            } else if (this.value === "Google") {
+                $('.selectTranslationEngineBaidu').css('display', 'none');
+                $('.selectTranslationEngineGoogle').css('display', 'inherit');
+                $('.selectTranslationEngineDeepL').css('display', 'none');
+                $('.selectTranslationEngineOpenAi').css('display', 'none');
+            } else if (this.value === "GoogleFree") {
+                $('.selectTranslationEngineBaidu').css('display', 'none');
+                $('.selectTranslationEngineGoogle').css('display', 'none');
+                $('.selectTranslationEngineDeepL').css('display', 'none');
+                $('.selectTranslationEngineOpenAi').css('display', 'none');
+            } else if (this.value === "DeepL") {
+                $('.selectTranslationEngineBaidu').css('display', 'none');
+                $('.selectTranslationEngineGoogle').css('display', 'none');
+                $('.selectTranslationEngineDeepL').css('display', 'inherit');
+                $('.selectTranslationEngineOpenAi').css('display', 'none');
+            } else if (this.value === "OpenAi") {
+                $('.selectTranslationEngineBaidu').css('display', 'none');
+                $('.selectTranslationEngineGoogle').css('display', 'none');
+                $('.selectTranslationEngineDeepL').css('display', 'none');
+                $('.selectTranslationEngineOpenAi').css('display', 'inherit');
+            } else {
+                $('.selectTranslationEngineBaidu').css('display', 'none');
+                $('.selectTranslationEngineGoogle').css('display', 'none');
+                $('.selectTranslationEngineDeepL').css('display', 'none');
+                $('.selectTranslationEngineOpenAi').css('display', 'none');
+            }
+        });
+
+        $('.MetaXConfigurationPage').on('pageshow', function () {
+            Dashboard.showLoadingMsg();
+            var page = this;
+            ApiClient.getPluginConfiguration(MetaXPluginConfig.pluginUniqueId).then(function (config) {
+                $('#txtServer', page).val(config.Server).change();
+                $('#txtToken', page).val(config.Token).change();
+                page.querySelector('#chkEnableCollections').checked = config.EnableCollections;
+                page.querySelector('#chkEnableDirectors').checked = config.EnableDirectors;
+                page.querySelector('#chkEnableRatings').checked = config.EnableRatings;
+                page.querySelector('#chkEnableTrailers').checked = config.EnableTrailers;
+                page.querySelector('#chkEnableRealActorNames').checked = config.EnableRealActorNames;
+                page.querySelector('#chkEnableBadges').checked = config.EnableBadges;
+                $('#txtBadgeUrl', page).val(config.BadgeUrl).change();
+                $('#txtPrimaryImageRatio', page).val(config.PrimaryImageRatio).change();
+                $('#txtDefaultImageQuality', page).val(config.DefaultImageQuality).change();
+                page.querySelector('#chkEnableMovieProviderFilter').checked = config.EnableMovieProviderFilter;
+                $('#txtRawMovieProviderFilter', page).val(config.RawMovieProviderFilter).change();
+                page.querySelector('#chkEnableTemplate').checked = config.EnableTemplate;
+                $('#txtNameTemplate', page).val(config.NameTemplate).change();
+                $('#txtTaglineTemplate', page).val(config.TaglineTemplate).change();
+                $('#selectTranslationMode', page).val(config.TranslationMode).change();
+                $('#selectTranslationEngine', page).val(config.TranslationEngine).change();
+                $('#txtBaiduAppId', page).val(config.BaiduAppId).change();
+                $('#txtBaiduAppKey', page).val(config.BaiduAppKey).change();
+                $('#txtGoogleApiKey', page).val(config.GoogleApiKey).change();
+                $('#txtGoogleApiUrl', page).val(config.GoogleApiUrl).change();
+                $('#txtDeepLApiKey', page).val(config.DeepLApiKey).change();
+                $('#txtDeepLApiUrl', page).val(config.DeepLApiUrl).change();
+                $('#txtOpenAiApiKey', page).val(config.OpenAiApiKey).change();
+                $('#txtOpenAiApiUrl', page).val(config.OpenAiApiUrl).change();
+                $('#txtOpenAiModel', page).val(config.OpenAiModel).change();
+                page.querySelector('#chkEnableTitleSubstitution').checked = config.EnableTitleSubstitution;
+                $('#txtTitleRawSubstitutionTable', page).val(config.TitleRawSubstitutionTable).change();
+                page.querySelector('#chkEnableActorSubstitution').checked = config.EnableActorSubstitution;
+                $('#txtActorRawSubstitutionTable', page).val(config.ActorRawSubstitutionTable).change();
+                page.querySelector('#chkEnableGenreSubstitution').checked = config.EnableGenreSubstitution;
+                $('#txtGenreRawSubstitutionTable', page).val(config.GenreRawSubstitutionTable).change();
+                $.when(metaXLoadProviderCatalog(page, config), metaXLoadLibraries(page, config))
+                    .always(function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+            });
+        });
+
+        $('#btnAddProviderCookie').on('click', function () {
+            var page = $(this).closest('.MetaXConfigurationPage');
+            $('#providerCookieRows', page).append(metaXCreateProviderCookieRow("", "", true));
+            metaXUpdateProviderCookieLimit(page);
+            return false;
+        });
+
+        $(document).on('input change', '.providerCookieValue, .providerCookieName', function () {
+            metaXUpdateProviderCookieLimit($(this).closest('.MetaXConfigurationPage'));
+        });
+
+        $('.MetaXConfigurationForm').on('submit', function () {
+            Dashboard.showLoadingMsg();
+            var form = this;
+            ApiClient.getPluginConfiguration(MetaXPluginConfig.pluginUniqueId).then(function (config) {
+                config.Server = $('#txtServer', form).val();
+                config.Token = $('#txtToken', form).val();
+                config.EnableCollections = $('#chkEnableCollections', form).prop('checked');
+                config.EnableDirectors = $('#chkEnableDirectors', form).prop('checked');
+                config.EnableRatings = $('#chkEnableRatings', form).prop('checked');
+                config.EnableTrailers = $('#chkEnableTrailers', form).prop('checked');
+                config.EnableRealActorNames = $('#chkEnableRealActorNames', form).prop('checked');
+                config.EnableBadges = $('#chkEnableBadges', form).prop('checked');
+                config.BadgeUrl = $('#txtBadgeUrl', form).val();
+                config.PrimaryImageRatio = $('#txtPrimaryImageRatio', form).val();
+                config.DefaultImageQuality = $('#txtDefaultImageQuality', form).val();
+                config.EnableMovieProviderFilter = $('#chkEnableMovieProviderFilter', form).prop('checked');
+                config.RawMovieProviderFilter = $('#txtRawMovieProviderFilter', form).val();
+                config.EnableTemplate = $('#chkEnableTemplate', form).prop('checked');
+                config.NameTemplate = $('#txtNameTemplate', form).val();
+                config.TaglineTemplate = $('#txtTaglineTemplate', form).val();
+                config.TranslationMode = $('#selectTranslationMode', form).val();
+                config.TranslationEngine = $('#selectTranslationEngine', form).val();
+                config.BaiduAppId = $('#txtBaiduAppId', form).val();
+                config.BaiduAppKey = $('#txtBaiduAppKey', form).val();
+                config.GoogleApiKey = $('#txtGoogleApiKey', form).val();
+                config.GoogleApiUrl = $('#txtGoogleApiUrl', form).val();
+                config.DeepLApiKey = $('#txtDeepLApiKey', form).val();
+                config.DeepLXAltUrl = $('#txtDeepLApiUrl', form).val();
+                config.OpenAiApiKey = $('#txtOpenAiApiKey', form).val();
+                config.OpenAiApiUrl = $('#txtOpenAiApiUrl', form).val();
+                config.OpenAiModel = $('#txtOpenAiModel', form).val();
+                config.EnableTitleSubstitution = $('#chkEnableTitleSubstitution', form).prop('checked');
+                config.TitleRawSubstitutionTable = $('#txtTitleRawSubstitutionTable', form).val();
+                config.EnableActorSubstitution = $('#chkEnableActorSubstitution', form).prop('checked');
+                config.ActorRawSubstitutionTable = $('#txtActorRawSubstitutionTable', form).val();
+                config.EnableGenreSubstitution = $('#chkEnableGenreSubstitution', form).prop('checked');
+                config.GenreRawSubstitutionTable = $('#txtGenreRawSubstitutionTable', form).val();
+
+                config.ProviderCookies = [];
+                $('.providerCookieRow', form).each(function () {
+                    var provider = ($(this).find('.providerCookieName').val() || "").trim();
+                    var cookie = ($(this).find('.providerCookieValue').val() || "").trim();
+                    if (provider && cookie) {
+                        config.ProviderCookies.push({ Provider: provider, Cookie: cookie });
+                    }
+                });
+
+                metaXUpdateProviderCookieLimit(form);
+                if ($('#providerCookieLimitWarning', form).data('block')) {
+                    Dashboard.hideLoadingMsg();
+                    return;
+                }
+
+                config.LibraryCategories = [];
+                $('.libraryCategoryRow', form).each(function () {
+                    var libraryId = ($(this).attr('data-library-id') || "").trim();
+                    var category = ($(this).find('.libraryCategorySelect').val() || "").trim();
+                    if (libraryId && category) {
+                        config.LibraryCategories.push({ LibraryId: libraryId, Category: category });
+                    }
+                });
+
+                ApiClient.updatePluginConfiguration(MetaXPluginConfig.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+            });
+            // Disable default form submission
+            return false;
+        });
+    </script>
+</div>
+</body>
+</html>

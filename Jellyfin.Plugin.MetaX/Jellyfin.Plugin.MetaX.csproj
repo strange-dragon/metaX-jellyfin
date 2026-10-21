@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>MetaX</AssemblyName>
+    <RootNamespace>Jellyfin.Plugin.MetaX</RootNamespace>
+    <Version>0.1.0.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Authors>metaX contributors</Authors>
+    <Description>MetaX Plugin for Jellyfin</Description>
+    <PackageId>MetaX</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>thumb.png</PackageIcon>
+    <RepositoryType>Git</RepositoryType>
+    <RepositoryUrl>https://github.com/strange-dragon/metaX-jellyfin.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/strange-dragon/metaX-jellyfin</PackageProjectUrl>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
+    <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration/configPage.html" />
+    <EmbeddedResource Include="Configuration/configPage.html" />
+    <None Remove="thumb.png" />
+    <None Include="thumb.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Jellyfin.Plugin.MetaX.Tests" />
+  </ItemGroup>
+
+  <Target Name="Zip" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <FilesToDelete Include="$(BaseOutputPath)Jellyfin.MetaX*.zip" />
+      <TempZipDirectory Include="$(OutputPath)output" />
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="@(TempZipDirectory)" />
+    <ZipDirectory SourceDirectory="@(TempZipDirectory)" DestinationFile="$(BaseOutputPath)Jellyfin.MetaX@v$(Version).zip" />
+    <RemoveDir Directories="@(TempZipDirectory)" />
+  </Target>
+
+</Project>

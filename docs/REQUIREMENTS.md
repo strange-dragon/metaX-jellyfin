@@ -1,6 +1,6 @@
 # Jellyfin plugin requirements
 
-Status: **planned, not implemented in this repository**.
+Status: **implemented in code; live Jellyfin verification pending**.
 
 Backend project: [strange-dragon/metaX](https://github.com/strange-dragon/metaX).
 This repository is the plugin-side implementation project; it must not add a
@@ -172,19 +172,38 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - This document does not claim the plugin change exists or that any blocked
   site works from a particular network.
 
-## 7. Plugin implementation checklist (future)
+## 7. Plugin implementation checklist
 
-- [ ] Add `ProviderCookies` and `LibraryCategories` to plugin configuration and
+- [x] Add `ProviderCookies` and `LibraryCategories` to plugin configuration and
       settings UI.
-- [ ] Load provider names from `/v1/providers` and render per-provider fields.
-- [ ] Load the non-secret category -> provider manifest and filter cookies by
+- [x] Load provider names from `/v1/providers` and render per-provider fields.
+- [x] Load the non-secret category -> provider manifest and filter cookies by
       the current library category before serializing.
-- [ ] Serialize the non-empty category-scoped dictionary as JSON.
-- [ ] Add the header to every MetaTube API/image request.
-- [ ] Enforce the 16 KiB limit client-side with a clear error.
-- [ ] Mask values in logs, exceptions, and diagnostics.
-- [ ] Add integration tests with a mock MetaTube server that asserts the
+- [x] Serialize the non-empty category-scoped dictionary as JSON.
+- [x] Add the header to movie/actor search, detail, and image requests.
+- [x] Enforce the 16 KiB limit client-side with a clear error.
+- [x] Mask values in logs, exceptions, and diagnostics.
+- [x] Add integration tests with a mock MetaTube server that asserts the
       header on search, detail, actor, and image requests.
-- [ ] Add a concurrency test proving two plugin instances/requests do not share
+- [x] Add a concurrency test proving two plugin instances/requests do not share
       cookie state.
-- [ ] Update the plugin README and migration notes.
+- [x] Update the plugin README and implementation notes.
+- [ ] Verify installation and metadata/image flows in a live Jellyfin 10.11 instance.
+
+## 8. Implementation notes
+
+- Plugin identity: `Jellyfin.Plugin.MetaX`, assembly/provider name `MetaX`,
+  plugin id `5597841f-fe55-4d59-991e-c3bdbf7d8d1d`.
+- Configuration stores provider cookies and library categories as entry lists
+  (`ProviderCookieEntry` / `LibraryCategoryEntry`) because Jellyfin's XML
+  configuration path cannot reliably round-trip `Dictionary<string, string>`.
+  The runtime converts them to case-insensitive dictionaries.
+- `MetaXApiClient` builds the cookie header per request. `BaseProvider`
+  extracts the `category` query parameter from movie image URLs so image
+  downloads use the same scope.
+- `MetaXController` exposes the non-secret provider catalog to the settings
+  page at `Plugins/MetaX/Providers`; the controller requires an elevated
+  Jellyfin user.
+- Unit and mocked-HTTP tests are in `Jellyfin.Plugin.MetaX.Tests`. A live
+  Jellyfin install and a live metaX server are still required for end-to-end
+  verification.
