@@ -37,6 +37,7 @@ public sealed class MetaXApiClient
     private ProviderManifest _manifest;
     private DateTimeOffset _manifestExpiresAt;
     private bool _manifestAttempted;
+    private string _manifestKey;
 
     public MetaXApiClient(
         Func<PluginConfiguration> configuration,
@@ -246,13 +247,14 @@ public sealed class MetaXApiClient
 
     private async Task<ProviderManifest> GetManifestAsync(CancellationToken cancellationToken)
     {
-        if (_manifestAttempted && DateTimeOffset.UtcNow < _manifestExpiresAt)
+        var manifestKey = GetManifestKey();
+        if (IsManifestCacheValid(manifestKey))
             return _manifest;
 
         await _manifestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_manifestAttempted && DateTimeOffset.UtcNow < _manifestExpiresAt)
+            if (IsManifestCacheValid(manifestKey))
                 return _manifest;
 
             try
@@ -263,6 +265,7 @@ public sealed class MetaXApiClient
 
                 _manifest = manifest;
                 _manifestAttempted = true;
+                _manifestKey = manifestKey;
                 _manifestExpiresAt = DateTimeOffset.UtcNow + _manifestTtl;
                 return manifest;
             }
@@ -276,6 +279,7 @@ public sealed class MetaXApiClient
                 // extra request per metadata call.
                 _manifest = null;
                 _manifestAttempted = true;
+                _manifestKey = manifestKey;
                 _manifestExpiresAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30);
                 _logger.LogWarning("MetaX provider manifest is unavailable: {Message}", e.Message);
                 return null;
@@ -285,6 +289,19 @@ public sealed class MetaXApiClient
         {
             _manifestLock.Release();
         }
+    }
+
+    private bool IsManifestCacheValid(string manifestKey)
+    {
+        return _manifestAttempted &&
+               string.Equals(_manifestKey, manifestKey, StringComparison.Ordinal) &&
+               DateTimeOffset.UtcNow < _manifestExpiresAt;
+    }
+
+    private string GetManifestKey()
+    {
+        var config = Configuration;
+        return (config.Server ?? string.Empty) + "\n" + (config.Token ?? string.Empty);
     }
 
     private async Task<ProviderManifest> FetchManifestAsync(CancellationToken cancellationToken)

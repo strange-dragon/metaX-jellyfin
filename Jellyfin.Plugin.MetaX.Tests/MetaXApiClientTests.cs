@@ -173,6 +173,36 @@ public class MetaXApiClientTests
     }
 
     [Fact]
+    public async Task ManifestCache_IsInvalidatedWhenServerChanges()
+    {
+        var config = CreateConfiguration("javdb=1");
+        var fetchCount = 0;
+        var api = CreateClient(
+            new CapturingHandler(_ => JsonResponse("""{"data":[]}""")),
+            manifestFetcher: _ =>
+            {
+                fetchCount++;
+                return Task.FromResult(new ProviderManifest
+                {
+                    RouteProviders = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["censored"] = new[] { "JavDB" }
+                    },
+                    CookieTransportVersion = "1"
+                });
+            },
+            config: config);
+
+        await api.BuildProviderCookieHeaderAsync("censored", null, CancellationToken.None);
+        await api.BuildProviderCookieHeaderAsync("censored", null, CancellationToken.None);
+        Assert.Equal(1, fetchCount);
+
+        config.Server = "http://metax-other.test";
+        await api.BuildProviderCookieHeaderAsync("censored", null, CancellationToken.None);
+        Assert.Equal(2, fetchCount);
+    }
+
+    [Fact]
     public void GetPrimaryImageApiUrl_IncludesCategory()
     {
         var api = CreateClient(new CapturingHandler(_ => JsonResponse("""{"data":[]}""")));
