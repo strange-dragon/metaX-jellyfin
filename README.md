@@ -13,16 +13,23 @@ second scraper runtime.
 
 ## Status
 
-- Jellyfin `10.11.x` / `net9.0`.
+- Jellyfin `12.x` / `net10.0`. This build does not target Jellyfin 10.11.
 - Builds and has unit/integration tests with a mocked HTTP server.
-- Not yet verified against a live Jellyfin installation in this workspace.
+- Verified on Jellyfin `12.2`: the plugin loads, appears in the plugin
+  catalog, serves its settings page, exposes the provider catalog, and returns
+  remote movie search results from a mocked metaX server.
+- A full library refresh was verified against the same mocked backend: movie
+  search, detail, category scoping, cookie headers, primary/thumb/backdrop
+  images, and person metadata all completed.
+- A live metaX server is still required for the final end-to-end check.
 - Provider live-site coverage is limited by the backend's own access results
   (for example, Prestige and Getchu are blocked from some networks). This
   plugin does not claim those sites work.
 
 ## Requirements
 
-- .NET SDK 9.0 or newer 9.0 feature band.
+- Jellyfin `12.x` (`net10.0`).
+- .NET SDK 10.0 or newer 10.0 feature band.
 - A reachable metaX server that exposes the MetaTube-compatible API and
   `/v1/metax/status`.
 - HTTPS between Jellyfin and the metaX server. Provider cookies are session
@@ -37,11 +44,12 @@ dotnet build Jellyfin.Plugin.MetaX/Jellyfin.Plugin.MetaX.csproj -c Release
 ```
 
 The Release build also writes `Jellyfin.MetaX@v<version>.zip` under the plugin
-project's `bin` directory. Install it as a normal Jellyfin plugin, or copy the
-built `MetaX.dll` into the Jellyfin plugin directory.
+project's `bin` directory. The archive contains `MetaX.dll` and `meta.json`
+with `targetAbi` set to `12.0.0.0`, so it can be installed through Jellyfin's
+plugin installer or by copying the built `MetaX.dll` into a plugin directory.
 
-The local build used for development is .NET SDK `9.0.319`. The repository's
-`global.json` accepts the latest .NET 9 feature band.
+The local build used for development is .NET SDK `10.0.402`. The repository's
+`global.json` accepts the latest .NET 10 minor SDK.
 
 ## Configuration
 
@@ -114,7 +122,13 @@ Other rules:
 - Actor requests are not library-bound. Actor detail uses the explicit actor
   provider's cookie; unscoped actor search uses the configured cookie set so
   actor providers can participate. Image requests without a category also use
-  the unscoped set.
+  the unscoped set when Jellyfin calls the plugin image provider.
+- Jellyfin's Person image downloader fetches a `PersonInfo.ImageUrl` directly
+  and does not route that request through the plugin's `GetImageResponse`.
+  Jellyfin 12 therefore cannot attach provider cookies to that particular
+  actor-image download. Actor search/detail requests still carry the header;
+  providers that require cookies only for actor images need a proxy or a
+  Jellyfin-side change.
 
 The plugin is the sole persistent owner of provider cookies. The metaX server
 does not save or replay them; it applies them only to the request that carries
@@ -131,7 +145,9 @@ The xUnit project covers:
   and image requests, including the category query and cookie header.
 
 Tests use deterministic mocked responses and do not require a live metaX
-server or a live Jellyfin instance.
+server. The Jellyfin 12.2 smoke checks used a local server and a local mock
+metaX HTTP endpoint; they are documented in the PR rather than required for
+the unit test suite.
 
 ## Attribution and license
 

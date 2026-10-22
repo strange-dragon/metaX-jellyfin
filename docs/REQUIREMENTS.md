@@ -1,6 +1,7 @@
 # Jellyfin plugin requirements
 
-Status: **implemented in code; live Jellyfin verification pending**.
+Status: **implemented in code; Jellyfin 12 smoke and full mock-backend
+library refresh verification passed; live metaX verification pending**.
 
 Backend project: [strange-dragon/metaX](https://github.com/strange-dragon/metaX).
 This repository is the plugin-side implementation project; it must not add a
@@ -188,7 +189,11 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - [x] Add a concurrency test proving two plugin instances/requests do not share
       cookie state.
 - [x] Update the plugin README and implementation notes.
-- [ ] Verify installation and metadata/image flows in a live Jellyfin 10.11 instance.
+- [x] Verify plugin loading, plugin catalog, settings page, provider catalog,
+      and remote movie search on Jellyfin `12.2`.
+- [x] Verify a full library metadata/image refresh against a mock metaX
+      endpoint on Jellyfin `12.2`, including category-scoped cookie headers.
+- [ ] Repeat the full refresh against a live metaX server.
 
 ## 8. Implementation notes
 
@@ -204,6 +209,18 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - `MetaXController` exposes the non-secret provider catalog to the settings
   page at `Plugins/MetaX/Providers`; the controller requires an elevated
   Jellyfin user.
-- Unit and mocked-HTTP tests are in `Jellyfin.Plugin.MetaX.Tests`. A live
-  Jellyfin install and a live metaX server are still required for end-to-end
-  verification.
+- Unit and mocked-HTTP tests are in `Jellyfin.Plugin.MetaX.Tests`. A Jellyfin
+  `12.2` smoke test validated plugin loading, the plugin catalog, the settings
+  page, the provider-catalog endpoint, remote movie search, and a full library
+  metadata/image refresh against a local mock metaX endpoint. A live metaX
+  server is still required for final end-to-end verification.
+- Jellyfin's Person image downloader fetches `PersonInfo.ImageUrl` directly
+  instead of calling the plugin's `GetImageResponse`, so actor-image downloads
+  cannot carry `X-MetaX-Provider-Cookies` under Jellyfin `12.2`. Actor
+  search/detail requests do carry the header. A proxy or a Jellyfin-side change
+  would be required to add cookies to the direct person-image download.
+- The plugin targets `net10.0` and Jellyfin `12.x`. Jellyfin `10.11` uses
+  `net9.0`; supporting both in one package would require a separate build and
+  is not part of this change.
+- The release archive includes `meta.json` with `targetAbi` `12.0.0.0` and the
+  plugin GUID, so it is installable through the Jellyfin plugin installer.

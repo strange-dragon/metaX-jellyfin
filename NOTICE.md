@@ -7,9 +7,9 @@ The upstream project is licensed under the MIT License. Its license text is
 preserved in [LICENSE](LICENSE).
 
 Modifications in this repository add the MetaX plugin identity, provider-cookie
-configuration and transport, Jellyfin-library category routing, and
-MetaX-specific tests. The modified work is distributed under the same MIT
-License.
+configuration and transport, Jellyfin-library category routing, MetaX-specific
+tests, and a retarget of the plugin to Jellyfin 12 / .NET 10. The modified work
+is distributed under the same MIT License.
 
 The metaX scraping backend is a separate project:
 [strange-dragon/metaX](https://github.com/strange-dragon/metaX). No Amane

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -22,8 +22,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
+    <PackageReference Include="Jellyfin.Controller" Version="12.2.0" />
+    <PackageReference Include="Jellyfin.Model" Version="12.2.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +31,8 @@
     <EmbeddedResource Include="Configuration/configPage.html" />
     <None Remove="thumb.png" />
     <None Include="thumb.png" Pack="true" PackagePath="" />
+    <None Remove="meta.json" />
+    <None Include="meta.json" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,7 +45,7 @@
       <TempZipDirectory Include="$(OutputPath)output" />
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
-    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="@(TempZipDirectory)" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll;$(OutputPath)meta.json" DestinationFolder="@(TempZipDirectory)" />
     <ZipDirectory SourceDirectory="@(TempZipDirectory)" DestinationFile="$(BaseOutputPath)Jellyfin.MetaX@v$(Version).zip" />
     <RemoveDir Directories="@(TempZipDirectory)" />
   </Target>
