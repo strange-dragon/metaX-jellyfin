@@ -407,7 +407,7 @@ public sealed class MetaXApiClient
         return ProviderCookieHeaderBuilder.Build(cookies, category, manifest?.RouteProviders, explicitProvider);
     }
 
-    private bool IsMetaXServerUrl(string url)
+    internal bool IsMetaXServerUrl(string url)
     {
         var server = Configuration.Server?.Trim();
         if (string.IsNullOrWhiteSpace(server) ||

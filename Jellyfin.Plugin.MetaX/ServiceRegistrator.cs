@@ -1,5 +1,6 @@
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +27,10 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
                 new HttpClient(handler),
                 provider.GetRequiredService<ILogger<MetaXApiClient>>());
         });
+
+        serviceCollection.AddSingleton(provider => new ImageProxyService(
+            provider.GetRequiredService<IDataProtectionProvider>(),
+            () => applicationHost.GetLocalApiUrl("127.0.0.1", "http", null)));
 
         serviceCollection.AddSingleton(provider => new LibraryCategoryResolver(
             provider.GetRequiredService<MediaBrowser.Controller.Library.ILibraryManager>(),

@@ -41,14 +41,21 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
     public MovieProvider(ILogManager logManager, MetaXApiClient api, LibraryCategoryResolver categories)
         : base(logManager.CreateLogger<MovieProvider>(), api)
 #else
-    public MovieProvider(ILogger<MovieProvider> logger, MetaXApiClient api, LibraryCategoryResolver categories)
+    public MovieProvider(ILogger<MovieProvider> logger, MetaXApiClient api, LibraryCategoryResolver categories,
+        ImageProxyService imageProxy = null)
         : base(logger, api)
 #endif
     {
         _categories = categories;
+#if __EMBY__
+        _imageProxy = null;
+#else
+        _imageProxy = imageProxy;
+#endif
     }
 
     private readonly LibraryCategoryResolver _categories;
+    private readonly ImageProxyService _imageProxy;
 
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info,
         CancellationToken cancellationToken)
@@ -281,21 +288,37 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
             var firstResult = results.First();
             if (firstResult.Images?.Any() == true)
             {
-                actor.ImageUrl = Api.GetPrimaryImageApiUrl(
-                    firstResult.Provider, firstResult.Id, firstResult.Images.First(), 0.5, true);
+                actor.ImageUrl = GetProxiedActorImageUrl(Api.GetPrimaryImageApiUrl(
+                    firstResult.Provider, firstResult.Id, firstResult.Images.First(), 0.5, true));
                 actor.SetPid(Name, firstResult.Provider, firstResult.Id);
             }
 
             // Use the Gfriends to update the actor profile image, if any.
             foreach (var result in results.Where(result => result.Provider == Gfriends && result.Images?.Any() == true))
             {
-                actor.ImageUrl = Api.GetPrimaryImageApiUrl(
-                    result.Provider, result.Id, result.Images.First(), 0.5, true);
+                actor.ImageUrl = GetProxiedActorImageUrl(Api.GetPrimaryImageApiUrl(
+                    result.Provider, result.Id, result.Images.First(), 0.5, true));
             }
         }
         catch (Exception e)
         {
             Logger.Error("Get actor image error: {0} ({1})", actor.Name, e.Message);
+        }
+    }
+
+    private string GetProxiedActorImageUrl(string imageUrl)
+    {
+        if (_imageProxy == null)
+            return imageUrl;
+
+        try
+        {
+            return _imageProxy.CreateUrl(imageUrl, null);
+        }
+        catch (Exception e)
+        {
+            Logger.Warn("Falling back to direct actor image URL: {Message}", e.Message);
+            return imageUrl;
         }
     }
 

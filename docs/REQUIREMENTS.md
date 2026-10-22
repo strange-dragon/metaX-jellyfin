@@ -193,6 +193,8 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
       and remote movie search on Jellyfin `12.2`.
 - [x] Verify a full library metadata/image refresh against a mock metaX
       endpoint on Jellyfin `12.2`, including category-scoped cookie headers.
+- [x] Proxy Jellyfin Person images through a signed local endpoint so actor
+      image downloads carry provider cookies.
 - [ ] Repeat the full refresh against a live metaX server.
 
 ## 8. Implementation notes
@@ -215,10 +217,13 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
   metadata/image refresh against a local mock metaX endpoint. A live metaX
   server is still required for final end-to-end verification.
 - Jellyfin's Person image downloader fetches `PersonInfo.ImageUrl` directly
-  instead of calling the plugin's `GetImageResponse`, so actor-image downloads
-  cannot carry `X-MetaX-Provider-Cookies` under Jellyfin `12.2`. Actor
-  search/detail requests do carry the header. A proxy or a Jellyfin-side change
-  would be required to add cookies to the direct person-image download.
+  instead of calling the plugin's `GetImageResponse`. `MovieProvider` therefore
+  points actor images at `/Plugins/MetaX/Images?token=...`; the token is
+  protected with ASP.NET Core Data Protection, the endpoint is limited to the
+  configured metaX origin, and the proxy uses the normal cookie-building path.
+  The endpoint is anonymous because Jellyfin's internal downloader has no user
+  context. The live Jellyfin `12.2` check confirmed that the resulting
+  `Gfriends` actor-image request carried `X-MetaX-Provider-Cookies`.
 - The plugin targets `net10.0` and Jellyfin `12.x`. Jellyfin `10.11` uses
   `net9.0`; supporting both in one package would require a separate build and
   is not part of this change.

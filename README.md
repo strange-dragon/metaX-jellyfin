@@ -21,6 +21,9 @@ second scraper runtime.
 - A full library refresh was verified against the same mocked backend: movie
   search, detail, category scoping, cookie headers, primary/thumb/backdrop
   images, and person metadata all completed.
+- Actor images now use a signed plugin-local proxy, so Jellyfin's Person image
+  download also carries provider cookies. The proxy was verified live against
+  the mock metaX endpoint.
 - A live metaX server is still required for the final end-to-end check.
 - Provider live-site coverage is limited by the backend's own access results
   (for example, Prestige and Getchu are blocked from some networks). This
@@ -123,12 +126,13 @@ Other rules:
   provider's cookie; unscoped actor search uses the configured cookie set so
   actor providers can participate. Image requests without a category also use
   the unscoped set when Jellyfin calls the plugin image provider.
-- Jellyfin's Person image downloader fetches a `PersonInfo.ImageUrl` directly
-  and does not route that request through the plugin's `GetImageResponse`.
-  Jellyfin 12 therefore cannot attach provider cookies to that particular
-  actor-image download. Actor search/detail requests still carry the header;
-  providers that require cookies only for actor images need a proxy or a
-  Jellyfin-side change.
+- Jellyfin's Person image downloader fetches `PersonInfo.ImageUrl` directly
+  instead of calling the plugin's `GetImageResponse`. To preserve cookies for
+  actor images, the plugin points that URL at a signed local endpoint
+  (`/Plugins/MetaX/Images`), which validates the token and only proxies images
+  from the configured metaX origin. The endpoint is anonymous because the
+  Jellyfin downloader has no user context; the signature prevents it from
+  becoming an open proxy.
 
 The plugin is the sole persistent owner of provider cookies. The metaX server
 does not save or replay them; it applies them only to the request that carries
@@ -142,7 +146,8 @@ The xUnit project covers:
   16 KiB limit, CR/LF rejection, and secret-safe error messages;
 - configuration normalization for provider cookies and library categories;
 - mocked HTTP assertions for movie search, movie detail, actor search/detail,
-  and image requests, including the category query and cookie header.
+  and image requests, including the category query and cookie header;
+- signed image-proxy token round-trips and rejection of malformed tokens.
 
 Tests use deterministic mocked responses and do not require a live metaX
 server. The Jellyfin 12.2 smoke checks used a local server and a local mock
