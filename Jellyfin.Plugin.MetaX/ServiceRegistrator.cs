@@ -12,8 +12,9 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton(provider =>
         {
-            var handler = new SocketsHttpHandler
+            var socketsHandler = new SocketsHttpHandler
             {
+                AllowAutoRedirect = false,
                 ConnectTimeout = TimeSpan.FromSeconds(30),
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always,
                 KeepAlivePingDelay = TimeSpan.FromSeconds(30),
@@ -21,6 +22,11 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
                 PooledConnectionLifetime = TimeSpan.FromMinutes(10),
                 PooledConnectionIdleTimeout = TimeSpan.FromSeconds(90)
             };
+
+            var handler = new SafeRedirectHandler(
+                socketsHandler,
+                url => MetaXApiClient.IsMetaXServerUrl(Plugin.Instance?.Configuration?.Server, url),
+                provider.GetRequiredService<ILogger<SafeRedirectHandler>>());
 
             return new MetaXApiClient(
                 () => Plugin.Instance.Configuration,

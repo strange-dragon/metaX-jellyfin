@@ -113,6 +113,10 @@ Other rules:
 
 - The header is only sent to the configured metaX server, never to arbitrary
   image URLs.
+- Redirects are followed manually with a five-hop limit. Every hop is checked
+  against the configured metaX origin; if a redirect leaves that origin, both
+  `X-MetaX-Provider-Cookies` and `Authorization` are removed before the next
+  request is sent.
 - The API token remains in the normal `Authorization` header.
 - Cookie values never appear in URLs, Jellyfin metadata, logs, exception
   messages, or diagnostics. The plugin XML configuration does contain them in
@@ -147,7 +151,9 @@ The xUnit project covers:
 - configuration normalization for provider cookies and library categories;
 - mocked HTTP assertions for movie search, movie detail, actor search/detail,
   and image requests, including the category query and cookie header;
-- signed image-proxy token round-trips and rejection of malformed tokens.
+- signed image-proxy token round-trips and rejection of malformed tokens;
+- redirect handling that keeps credentials on the metaX origin and removes
+  them from cross-origin hops, including a redirect-loop limit.
 
 Tests use deterministic mocked responses and do not require a live metaX
 server. The Jellyfin 12.2 smoke checks used a local server and a local mock

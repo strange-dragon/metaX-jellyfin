@@ -409,7 +409,12 @@ public sealed class MetaXApiClient
 
     internal bool IsMetaXServerUrl(string url)
     {
-        var server = Configuration.Server?.Trim();
+        return IsMetaXServerUrl(Configuration.Server, url);
+    }
+
+    internal static bool IsMetaXServerUrl(string server, string url)
+    {
+        server = server?.Trim();
         if (string.IsNullOrWhiteSpace(server) ||
             !Uri.TryCreate(server, UriKind.Absolute, out var serverUri) ||
             !Uri.TryCreate(url, UriKind.Absolute, out var requestUri))
