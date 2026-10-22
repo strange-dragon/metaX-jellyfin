@@ -1,0 +1,12 @@
+{
+  "category": "Metadata",
+  "changelog": "Add Jellyfin 12 / .NET 10 support, a signed actor-image proxy, and redirect credential scoping.",
+  "description": "MetaX metadata plugin for Jellyfin.",
+  "guid": "5597841f-fe55-4d59-991e-c3bdbf7d8d1d",
+  "name": "MetaX",
+  "overview": "Metadata and images from the metaX backend.",
+  "owner": "metaX contributors",
+  "targetAbi": "12.0.0.0",
+  "timestamp": "2026-10-21T00:00:00Z",
+  "version": "0.1.0.0"
+}

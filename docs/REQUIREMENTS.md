@@ -1,6 +1,7 @@
 # Jellyfin plugin requirements
 
-Status: **planned, not implemented in this repository**.
+Status: **implemented in code; Jellyfin 12 smoke and full mock-backend
+library refresh verification passed; live metaX verification pending**.
 
 Backend project: [strange-dragon/metaX](https://github.com/strange-dragon/metaX).
 This repository is the plugin-side implementation project; it must not add a
@@ -154,6 +155,10 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - Mask cookie fields in the plugin UI and never include them in exception
   messages.
 - Do not send the header to third-party URLs.
+- Disable automatic HTTP redirects and follow them manually with a bounded hop
+  count. Re-check every redirect target against the configured metaX origin and
+  remove both `X-MetaX-Provider-Cookies` and `Authorization` before any
+  cross-origin request.
 - Clearing a cookie in the plugin takes effect on the next request; there is no
   server-side state to invalidate.
 - Server restart does not lose plugin-managed cookies because the plugin
@@ -172,19 +177,65 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - This document does not claim the plugin change exists or that any blocked
   site works from a particular network.
 
-## 7. Plugin implementation checklist (future)
+## 7. Plugin implementation checklist
 
-- [ ] Add `ProviderCookies` and `LibraryCategories` to plugin configuration and
+- [x] Add `ProviderCookies` and `LibraryCategories` to plugin configuration and
       settings UI.
-- [ ] Load provider names from `/v1/providers` and render per-provider fields.
-- [ ] Load the non-secret category -> provider manifest and filter cookies by
+- [x] Load provider names from `/v1/providers` and render per-provider fields.
+- [x] Load the non-secret category -> provider manifest and filter cookies by
       the current library category before serializing.
-- [ ] Serialize the non-empty category-scoped dictionary as JSON.
-- [ ] Add the header to every MetaTube API/image request.
-- [ ] Enforce the 16 KiB limit client-side with a clear error.
-- [ ] Mask values in logs, exceptions, and diagnostics.
-- [ ] Add integration tests with a mock MetaTube server that asserts the
+- [x] Serialize the non-empty category-scoped dictionary as JSON.
+- [x] Add the header to movie/actor search, detail, and image requests.
+- [x] Enforce the 16 KiB limit client-side with a clear error.
+- [x] Mask values in logs, exceptions, and diagnostics.
+- [x] Add integration tests with a mock MetaTube server that asserts the
       header on search, detail, actor, and image requests.
-- [ ] Add a concurrency test proving two plugin instances/requests do not share
+- [x] Add a concurrency test proving two plugin instances/requests do not share
       cookie state.
-- [ ] Update the plugin README and migration notes.
+- [x] Update the plugin README and implementation notes.
+- [x] Verify plugin loading, plugin catalog, settings page, provider catalog,
+      and remote movie search on Jellyfin `12.2`.
+- [x] Verify a full library metadata/image refresh against a mock metaX
+      endpoint on Jellyfin `12.2`, including category-scoped cookie headers.
+- [x] Proxy Jellyfin Person images through a signed local endpoint so actor
+      image downloads carry provider cookies.
+- [x] Disable automatic redirects and strip provider cookies plus the bearer
+      token when a redirect leaves the configured metaX origin.
+- [ ] Repeat the full refresh against a live metaX server.
+
+## 8. Implementation notes
+
+- Plugin identity: `Jellyfin.Plugin.MetaX`, assembly/provider name `MetaX`,
+  plugin id `5597841f-fe55-4d59-991e-c3bdbf7d8d1d`.
+- Configuration stores provider cookies and library categories as entry lists
+  (`ProviderCookieEntry` / `LibraryCategoryEntry`) because Jellyfin's XML
+  configuration path cannot reliably round-trip `Dictionary<string, string>`.
+  The runtime converts them to case-insensitive dictionaries.
+- `MetaXApiClient` builds the cookie header per request. `BaseProvider`
+  extracts the `category` query parameter from movie image URLs so image
+  downloads use the same scope.
+- `SafeRedirectHandler` wraps the plugin HTTP handler with
+  `AllowAutoRedirect = false`, follows redirects itself, caps them at five
+  hops, and removes provider cookies and the bearer token on any hop outside
+  the configured metaX origin.
+- `MetaXController` exposes the non-secret provider catalog to the settings
+  page at `Plugins/MetaX/Providers`; the controller requires an elevated
+  Jellyfin user.
+- Unit and mocked-HTTP tests are in `Jellyfin.Plugin.MetaX.Tests`. A Jellyfin
+  `12.2` smoke test validated plugin loading, the plugin catalog, the settings
+  page, the provider-catalog endpoint, remote movie search, and a full library
+  metadata/image refresh against a local mock metaX endpoint. A live metaX
+  server is still required for final end-to-end verification.
+- Jellyfin's Person image downloader fetches `PersonInfo.ImageUrl` directly
+  instead of calling the plugin's `GetImageResponse`. `MovieProvider` therefore
+  points actor images at `/Plugins/MetaX/Images?token=...`; the token is
+  protected with ASP.NET Core Data Protection, the endpoint is limited to the
+  configured metaX origin, and the proxy uses the normal cookie-building path.
+  The endpoint is anonymous because Jellyfin's internal downloader has no user
+  context. The live Jellyfin `12.2` check confirmed that the resulting
+  `Gfriends` actor-image request carried `X-MetaX-Provider-Cookies`.
+- The plugin targets `net10.0` and Jellyfin `12.x`. Jellyfin `10.11` uses
+  `net9.0`; supporting both in one package would require a separate build and
+  is not part of this change.
+- The release archive includes `meta.json` with `targetAbi` `12.0.0.0` and the
+  plugin GUID, so it is installable through the Jellyfin plugin installer.
