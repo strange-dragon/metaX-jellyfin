@@ -58,12 +58,31 @@ bearer token.
 
 ## Installation
 
-### Option 1: Build from source and install manually
+### Option 1: Jellyfin plugin repository (recommended)
 
-The repository does not include a Jellyfin plugin repository manifest. Build
-the plugin, then copy the generated files into Jellyfin's plugins directory.
-Operators who publish their own plugin repository can distribute the generated
-zip and manifest through it.
+In Jellyfin:
+
+```text
+Dashboard → Plugins → Repositories → New Repository
+```
+
+Use:
+
+```text
+Name: metaX
+URL:  https://github.com/strange-dragon/metaX-jellyfin/releases/latest/download/manifest.json
+```
+
+Then open **Catalog → Metadata → MetaX** and install the plugin.
+
+The repository manifest is generated from each `v*` release tag by
+[`.github/workflows/release.yml`](.github/workflows/release.yml). It points at
+the matching plugin zip in GitHub Releases and includes its MD5 checksum.
+
+### Option 2: Build from source and install manually
+
+Build the plugin, then copy the generated files into Jellyfin's plugins
+directory.
 
 ```bash
 git clone https://github.com/strange-dragon/metaX-jellyfin.git
@@ -105,7 +124,7 @@ sudo systemctl restart jellyfin
 If your Jellyfin service uses a different user or data directory, adjust the
 paths and ownership accordingly. The plugin is loaded after Jellyfin restarts.
 
-### Option 2: Dockerized Jellyfin
+### Option 3: Dockerized Jellyfin
 
 The plugin itself is not a separate service and does not have its own Docker
 image. It runs inside the Jellyfin container. Mount or copy the plugin files

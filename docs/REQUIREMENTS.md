@@ -241,3 +241,6 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
   is not part of this change.
 - The release archive includes `meta.json` with `targetAbi` `12.0.0.0` and the
   plugin GUID, so it is installable through the Jellyfin plugin installer.
+- Each `v*` release publishes `manifest.json` alongside the plugin zip. The
+  stable repository URL is
+  `https://github.com/strange-dragon/metaX-jellyfin/releases/latest/download/manifest.json`.
