@@ -52,8 +52,9 @@ on Jellyfin `12.2`.
 - HTTPS between Jellyfin and the backend whenever provider cookies are used.
 - .NET SDK `10.0` only if you build the plugin from source.
 
-A backend token is optional but strongly recommended. If the backend has a
-token, configure the same token in the plugin.
+The metaX backend has no authentication. Leave the plugin **Token** blank.
+The field remains available for MetaTube-compatible backends that require a
+bearer token.
 
 ## Installation
 
@@ -146,7 +147,8 @@ Open **Dashboard → Plugins → MetaX** after Jellyfin has loaded the plugin.
 
 - **Server**: full base URL of the metaX backend, such as
   `https://metax.example.com` or `http://127.0.0.1:18080`.
-- **Token**: the backend's bearer token, or blank if the backend has no token.
+- **Token**: leave blank for metaX. Only set this for a MetaTube-compatible
+  backend that requires a bearer token. The metaX backend has no authentication.
 
 Use the backend's `/v1/metax/status` endpoint to verify connectivity:
 
@@ -197,7 +199,7 @@ For movie search, movie detail, and movie image requests, the plugin:
 2. reads the category-to-provider mapping from `/v1/metax/status`;
 3. sends only the cookies for providers in that category;
 4. passes the category to the backend;
-5. applies the API token in the normal `Authorization` header.
+5. applies the configured API token if one is set (blank for metaX).
 
 ### Enable the metadata provider
 
@@ -210,13 +212,13 @@ In each Jellyfin library:
 
 ## Security
 
-- Provider cookies and backend tokens are credentials. Do not put them in URLs,
-  screenshots, issue reports, or repository files.
+- Provider cookies are credentials. Do not put them in URLs, screenshots, issue
+  reports, or repository files. The metaX backend itself has no authentication.
 - The plugin stores provider cookies in Jellyfin's plugin XML configuration in
   plaintext. Protect the Jellyfin configuration directory with filesystem
   permissions.
-- Use HTTPS between Jellyfin and the backend. A bearer token alone does not
-  encrypt traffic.
+- Use HTTPS between Jellyfin and the backend; metadata and provider cookies are
+  not encrypted otherwise.
 - Provider cookie headers are limited to 16 KiB. CR/LF characters are rejected.
 - Cross-origin redirects strip both provider cookies and the bearer token.
 - The signed Person-image proxy is anonymous because Jellyfin's image downloader
@@ -233,13 +235,14 @@ curl -i http://backend-host:18080/v1/providers
 curl -i http://backend-host:18080/v1/metax/status
 ```
 
-Then verify the **Server** URL and token in the plugin settings. Existing
-provider names remain editable if the catalog cannot be fetched.
+Then verify the **Server** URL in the plugin settings. Existing provider names
+remain editable if the catalog cannot be fetched.
 
-### Requests return 401
+### Requests return 401 (authenticated backend)
 
-The backend has a token configured, but the plugin's **Token** is blank or
-different. Set the same value in both places.
+If you are using a MetaTube-compatible backend that requires a bearer token,
+its **Token** value in the plugin is blank or different. Set the same value in
+both places. The metaX backend does not require a token.
 
 ### Metadata works but images do not
 

@@ -117,8 +117,10 @@ Rules:
   - reviews;
   - primary/thumb/backdrop images;
   - any future endpoint that may call a provider.
-- Keep the existing authentication header unchanged. The cookie header is not
-  a replacement for the API token.
+- Keep the existing authentication header behavior unchanged. The cookie header
+  is not a replacement for backend authentication. metaX itself has no
+  authentication; an optional bearer token remains supported for other
+  MetaTube-compatible backends.
 - Do not put cookies in the query string, URL path, or image URL.
 - Do not forward the header to arbitrary image URLs; it is only for requests
   to the MetaTube server.
@@ -126,11 +128,11 @@ Rules:
   cookie values and malformed or trailing JSON.
 - The backend accepts at most 16 KiB for the raw header value.
 
-Example request:
+Example request against metaX (add `Authorization: Bearer <token>` only when
+using a backend that requires it):
 
 ```http
 GET /v1/movies/JavDB/ABC-123?lazy=false HTTP/1.1
-Authorization: Bearer <token>
 X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 ```
 
