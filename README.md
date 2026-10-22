@@ -13,7 +13,7 @@ configured backend for the duration of a request.
 Jellyfin library
   └─ MetaX plugin
        └─ metaX backend
-            └─ MetaTube SDK + native providers
+            └─ metaX server engine + providers
 ```
 
 ## Compatibility
@@ -22,6 +22,7 @@ Jellyfin library
 | --- | --- |
 | Jellyfin | `12.x` |
 | Plugin | `0.1.0.0` |
+| metaX backend | `0.1.0+` (MetaTube-compatible `/v1` API) |
 | Plugin target ABI | `12.0.0.0` |
 | Target framework | `net10.0` |
 
