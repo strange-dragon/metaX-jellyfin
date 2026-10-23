@@ -1,12 +1,12 @@
 {
   "category": "Metadata",
-  "changelog": "Keep exact catalog-number matches from every available provider instead of collapsing them into the MetaX row; return no result instead of unrelated series entries when no exact match exists; add actor and director portrait lookup for Movies and Shows.",
+  "changelog": "Document that ThePornDB API tokens can be entered through the existing provider-cookie field, including the movie, scene, and actor rows.",
   "description": "MetaX metadata plugin for Jellyfin.",
   "guid": "5597841f-fe55-4d59-991e-c3bdbf7d8d1d",
   "name": "MetaX",
   "overview": "Metadata and images from the metaX backend.",
   "owner": "metaX contributors",
   "targetAbi": "12.0.0.0",
-  "timestamp": "2026-10-23T02:42:27Z",
-  "version": "0.2.0.1"
+  "timestamp": "2026-10-23T04:47:34Z",
+  "version": "0.2.0.2"
 }

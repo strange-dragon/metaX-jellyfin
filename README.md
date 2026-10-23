@@ -21,7 +21,7 @@ Jellyfin library
 | Component | Version |
 | --- | --- |
 | Jellyfin | `12.x` |
-| Plugin | `0.2.0.0` |
+| Plugin | `0.2.0.2` |
 | metaX backend | `0.1.0+` (MetaTube-compatible `/v1` API) |
 | Plugin target ABI | `12.0.0.0` |
 | Target framework | `net10.0` |
@@ -100,7 +100,7 @@ dotnet build Jellyfin.Plugin.MetaX/Jellyfin.Plugin.MetaX.csproj -c Release
 The Release build produces:
 
 ```text
-Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.0.zip
+Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.2.zip
 ```
 
 The archive contains `MetaX.dll` and `meta.json`. Stop Jellyfin, create a
@@ -111,17 +111,17 @@ Common default locations:
 
 | Installation | Plugin directory |
 | --- | --- |
-| Linux package | `/var/lib/jellyfin/plugins/MetaX_0.2.0.0/` |
-| Windows | `%ProgramData%\Jellyfin\Server\plugins\MetaX_0.2.0.0\` |
-| Docker | `/config/plugins/MetaX_0.2.0.0/` |
+| Linux package | `/var/lib/jellyfin/plugins/MetaX_0.2.0.2/` |
+| Windows | `%ProgramData%\Jellyfin\Server\plugins\MetaX_0.2.0.2\` |
+| Docker | `/config/plugins/MetaX_0.2.0.2/` |
 
 Example for a Linux package installation:
 
 ```bash
-sudo mkdir -p /var/lib/jellyfin/plugins/MetaX_0.2.0.0
-sudo unzip -o Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.0.zip \
-  -d /var/lib/jellyfin/plugins/MetaX_0.2.0.0
-sudo chown -R jellyfin:jellyfin /var/lib/jellyfin/plugins/MetaX_0.2.0.0
+sudo mkdir -p /var/lib/jellyfin/plugins/MetaX_0.2.0.2
+sudo unzip -o Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.2.zip \
+  -d /var/lib/jellyfin/plugins/MetaX_0.2.0.2
+sudo chown -R jellyfin:jellyfin /var/lib/jellyfin/plugins/MetaX_0.2.0.2
 sudo systemctl restart jellyfin
 ```
 
@@ -137,12 +137,12 @@ into Jellyfin's `/config/plugins` directory.
 With a host directory mounted at `/config/plugins`:
 
 ```bash
-mkdir -p ./jellyfin/config/plugins/MetaX_0.2.0.0
+mkdir -p ./jellyfin/config/plugins/MetaX_0.2.0.2
 
 cp Jellyfin.Plugin.MetaX/bin/Release/net10.0/MetaX.dll \
-  ./jellyfin/config/plugins/MetaX_0.2.0.0/
+  ./jellyfin/config/plugins/MetaX_0.2.0.2/
 cp Jellyfin.Plugin.MetaX/meta.json \
-  ./jellyfin/config/plugins/MetaX_0.2.0.0/
+  ./jellyfin/config/plugins/MetaX_0.2.0.2/
 
 docker compose restart jellyfin
 ```
@@ -188,7 +188,9 @@ that provider's `Cookie` header. Leave a provider blank to disable its cookie
 entry.
 
 The settings page loads the provider catalog from the backend. Provider names
-are normalized through the following aliases:
+are normalized through the following aliases. ThePornDB API tokens use the
+same cookie field as `access_token=YOUR_TOKEN`; set it for the movie, scene,
+and actor provider rows:
 
 - `DMM` → `FANZA`
 - `MGStage` → `MGS`

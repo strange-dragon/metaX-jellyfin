@@ -1,6 +1,6 @@
 # Jellyfin plugin requirements
 
-Status: **implemented in plugin 0.2.0.0; Jellyfin 12 smoke and full
+Status: **implemented in plugin 0.2.0.2; Jellyfin 12 smoke and full
 mock-backend library refresh verification passed; live metaX search and image
 endpoint verification passed. A full library refresh against the live backend
 still needs to be repeated in Jellyfin.**
