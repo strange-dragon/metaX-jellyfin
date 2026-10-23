@@ -46,6 +46,32 @@ public class PluginConfigurationTests
     }
 
     [Fact]
+    public void XmlSerializer_IgnoresRemovedLegacySettings()
+    {
+        const string xml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+              <Server>https://metax.example.com</Server>
+              <Token>legacy-token</Token>
+              <EnableMovieProviderFilter>true</EnableMovieProviderFilter>
+              <ProviderCookies>
+                <ProviderCookieEntry>
+                  <Provider>JavDB</Provider>
+                  <Cookie>session=abc</Cookie>
+                </ProviderCookieEntry>
+              </ProviderCookies>
+            </PluginConfiguration>
+            """;
+
+        var serializer = new XmlSerializer(typeof(PluginConfiguration));
+        using var reader = new StringReader(xml);
+        var config = Assert.IsType<PluginConfiguration>(serializer.Deserialize(reader));
+
+        Assert.Equal("https://metax.example.com", config.Server);
+        Assert.Equal("session=abc", config.GetProviderCookieDictionary()["JavDB"]);
+    }
+
+    [Fact]
     public void XmlSerializer_RoundTripsCookieAndCategoryEntries()
     {
         var config = new PluginConfiguration
