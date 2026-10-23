@@ -100,7 +100,8 @@ public class SeriesProvider : BaseProvider, IRemoteMetadataProvider<Series, Seri
             result.Item.AddTag(m.Label);
 
         if (!string.IsNullOrWhiteSpace(m.Director))
-            result.AddPerson(new PersonInfo
+        {
+            var director = new PersonInfo
             {
                 Name = m.Director,
 #if __EMBY__
@@ -108,13 +109,17 @@ public class SeriesProvider : BaseProvider, IRemoteMetadataProvider<Series, Seri
 #else
                 Type = PersonKind.Director
 #endif
-            });
+            };
+            await PersonImageResolver.SetImageAsync(director, Api, _imageProxy, Logger, cancellationToken);
+            result.AddPerson(director);
+        }
 
         foreach (var actorName in m.Actors ?? Enumerable.Empty<string>())
         {
             if (string.IsNullOrWhiteSpace(actorName))
                 continue;
-            result.AddPerson(new PersonInfo
+
+            var actor = new PersonInfo
             {
                 Name = actorName,
 #if __EMBY__
@@ -122,7 +127,9 @@ public class SeriesProvider : BaseProvider, IRemoteMetadataProvider<Series, Seri
 #else
                 Type = PersonKind.Actor
 #endif
-            });
+            };
+            await PersonImageResolver.SetImageAsync(actor, Api, _imageProxy, Logger, cancellationToken);
+            result.AddPerson(actor);
         }
 
         return result;

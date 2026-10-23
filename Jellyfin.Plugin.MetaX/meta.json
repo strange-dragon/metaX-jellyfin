@@ -1,12 +1,12 @@
 {
   "category": "Metadata",
-  "changelog": "Remove the token setting, simplify configuration, filter catalog-number searches to exact results, restore search images and names, and add Shows/Series metadata support.",
+  "changelog": "Keep exact catalog-number matches from every available provider instead of collapsing them into the MetaX row; return no result instead of unrelated series entries when no exact match exists; add actor and director portrait lookup for Movies and Shows.",
   "description": "MetaX metadata plugin for Jellyfin.",
   "guid": "5597841f-fe55-4d59-991e-c3bdbf7d8d1d",
   "name": "MetaX",
   "overview": "Metadata and images from the metaX backend.",
   "owner": "metaX contributors",
   "targetAbi": "12.0.0.0",
-  "timestamp": "2026-10-23T00:00:00Z",
-  "version": "0.2.0.0"
+  "timestamp": "2026-10-23T02:42:27Z",
+  "version": "0.2.0.1"
 }

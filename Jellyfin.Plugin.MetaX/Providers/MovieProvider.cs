@@ -29,7 +29,6 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 #endif
 {
     private const string AvBase = "AVBASE";
-    private const string Gfriends = "Gfriends";
     private const string Rating = "JP-18+";
 
     private static readonly string[] AvBaseSupportedProviderNames = { "DUGA", "FANZA", "Getchu", "MGS" };
@@ -193,7 +192,8 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 
         // Add director.
         if (Configuration.EnableDirectors && !string.IsNullOrWhiteSpace(m.Director))
-            result.AddPerson(new PersonInfo
+        {
+            var director = new PersonInfo
             {
                 Name = m.Director,
 #if __EMBY__
@@ -201,7 +201,10 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
 #else
                 Type = PersonKind.Director
 #endif
-            });
+            };
+            await PersonImageResolver.SetImageAsync(director, Api, _imageProxy, Logger, cancellationToken);
+            result.AddPerson(director);
+        }
 
         // Add actors.
         foreach (var name in m.Actors ?? Enumerable.Empty<string>())
@@ -215,7 +218,7 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
                 Type = PersonKind.Actor,
 #endif
             };
-            await SetActorImageUrl(actor, cancellationToken);
+            await PersonImageResolver.SetImageAsync(actor, Api, _imageProxy, Logger, cancellationToken);
             result.AddPerson(actor);
         }
 
@@ -289,55 +292,6 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         catch (Exception e)
         {
             Logger.Warn("Falling back to direct search image URL: {Message}", e.Message);
-            return imageUrl;
-        }
-    }
-
-    private async Task SetActorImageUrl(PersonInfo actor, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var results = await Api.SearchActorAsync(actor.Name, cancellationToken);
-            if (results?.Any() != true)
-            {
-                Logger.Warn("Actor not found: {0}", actor.Name);
-                return;
-            }
-
-            // Use the first result as the primary actor selection.
-            var firstResult = results.First();
-            if (firstResult.Images?.Any() == true)
-            {
-                actor.ImageUrl = GetProxiedActorImageUrl(Api.GetPrimaryImageApiUrl(
-                    firstResult.Provider, firstResult.Id, firstResult.Images.First(), 0.5, true));
-                actor.SetPid(Name, firstResult.Provider, firstResult.Id);
-            }
-
-            // Use the Gfriends to update the actor profile image, if any.
-            foreach (var result in results.Where(result => result.Provider == Gfriends && result.Images?.Any() == true))
-            {
-                actor.ImageUrl = GetProxiedActorImageUrl(Api.GetPrimaryImageApiUrl(
-                    result.Provider, result.Id, result.Images.First(), 0.5, true));
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Get actor image error: {0} ({1})", actor.Name, e.Message);
-        }
-    }
-
-    private string GetProxiedActorImageUrl(string imageUrl)
-    {
-        if (_imageProxy == null)
-            return imageUrl;
-
-        try
-        {
-            return _imageProxy.CreateUrl(imageUrl, null);
-        }
-        catch (Exception e)
-        {
-            Logger.Warn("Falling back to direct actor image URL: {Message}", e.Message);
             return imageUrl;
         }
     }

@@ -16,21 +16,53 @@ public class SearchResultHelperTests
     }
 
     [Fact]
-    public void FilterAndDeduplicate_KeepsOnlyExactCatalogMatches()
+    public void FilterAndDeduplicate_KeepsExactMatchesFromEveryProvider()
     {
         var results = new[]
         {
             Result("MetaX", "SSIS-001", "Exact title"),
-            Result("JavDB", "SSIS-001", "Duplicate exact title"),
+            Result("JavDB", "SSIS-001", "JavDB title"),
+            Result("JavBus", "SSIS-001", "JavBus title"),
             Result("JavDB", "SSIS-002", "Unrelated series result"),
             Result("JavDB", "SSIS-003", "Unrelated series result")
         };
 
         var filtered = SearchResultHelper.FilterAndDeduplicate(results, "ssis-001");
 
+        Assert.Equal(3, filtered.Count);
+        Assert.Contains(filtered, result => result.Provider == "MetaX");
+        Assert.Contains(filtered, result => result.Provider == "JavDB");
+        Assert.Contains(filtered, result => result.Provider == "JavBus");
+        Assert.All(filtered, result => Assert.Equal("SSIS-001", result.Number));
+    }
+
+    [Fact]
+    public void FilterAndDeduplicate_CollapsesDuplicateRowsWithinProvider()
+    {
+        var results = new[]
+        {
+            Result("JavDB", "SSIS-001", null),
+            Result("JavDB", "SSIS-001", "JavDB title")
+        };
+
+        var filtered = SearchResultHelper.FilterAndDeduplicate(results, "ssis-001");
+
         var result = Assert.Single(filtered);
-        Assert.Equal("MetaX", result.Provider);
-        Assert.Equal("SSIS-001", result.Number);
+        Assert.Equal("JavDB title", result.Title);
+    }
+
+    [Fact]
+    public void FilterAndDeduplicate_ReturnsNothingWhenCatalogNumberHasNoExactMatch()
+    {
+        var results = new[]
+        {
+            Result("JavDB", "SSIS-002", "Unrelated series result"),
+            Result("JavDB", "SSIS-003", "Unrelated series result")
+        };
+
+        var filtered = SearchResultHelper.FilterAndDeduplicate(results, "SSIS-001");
+
+        Assert.Empty(filtered);
     }
 
     [Fact]

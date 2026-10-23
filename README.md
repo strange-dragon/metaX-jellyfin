@@ -225,7 +225,7 @@ For movie search, movie detail, and movie image requests, the plugin:
 3. sends only the cookies for providers in that category;
 4. passes the category to the backend;
 5. filters catalog-number search results to the exact number and removes
-   duplicate provider rows.
+   duplicate rows within the same provider while keeping provider alternatives.
 
 ### Enable the metadata provider
 

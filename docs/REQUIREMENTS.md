@@ -207,8 +207,8 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
       tests, and documentation.
 - [x] Reduce the settings page to server, library categories, and provider
       cookies.
-- [x] Filter catalog-number searches to exact matches and deduplicate provider
-      rows.
+- [x] Filter catalog-number searches to exact matches and deduplicate rows
+      within each provider while keeping provider alternatives.
 - [x] Add a series metadata provider and Series image support for Jellyfin
       `Shows` libraries.
 - [x] Proxy browser-visible search images through the same-origin plugin image
@@ -246,9 +246,10 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
   The endpoint is anonymous because Jellyfin's internal downloader has no user
   context. The live Jellyfin `12.2` check confirmed that the resulting
   `Gfriends` actor-image request carried `X-MetaX-Provider-Cookies`.
-- `SearchResultHelper` normalizes catalog numbers, keeps exact matches when a
-  catalog-like query has them, and collapses duplicate provider rows (preferring
-  the merged `MetaX` candidate).
+- `SearchResultHelper` normalizes catalog numbers, keeps only exact matches
+  when a catalog-like query is used, and collapses duplicate rows only within
+  the same provider. Exact matches from JavDB, JavBus, FANZA, and other
+  providers remain selectable in Jellyfin.
 - `SeriesProvider` exposes the same MetaX movie record as a Jellyfin `Series`
   item so a `Shows` library can use MetaX. `MovieImageProvider` supports both
   `Movie` and `Series`.

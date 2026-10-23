@@ -65,19 +65,28 @@ internal static class SearchResultHelper
             var exactMatches = candidates
                 .Where(result => NumberMatches(result, queryKey))
                 .ToList();
-            if (exactMatches.Count > 0)
-                candidates = exactMatches;
+
+            // A catalog-number search must never fall back to the provider's
+            // whole series. If no exact row exists, show no result instead of
+            // flooding Jellyfin with unrelated titles.
+            if (exactMatches.Count == 0)
+                return new List<MovieSearchResult>();
+
+            candidates = exactMatches;
         }
 
         // The backend prepends one merged MetaX candidate, then repeats the
-        // provider entries it was built from. Collapse each catalog number to
-        // one row so Jellyfin does not show the same movie several times.
+        // provider entries it was built from. Keep one row per provider for
+        // the same catalog number so users can still choose JavDB, JavBus,
+        // FANZA, and other providers instead of losing every alternative.
         var unique = new Dictionary<string, MovieSearchResult>(StringComparer.OrdinalIgnoreCase);
         foreach (var candidate in candidates)
         {
-            var key = NormalizeCatalogNumber(candidate.Number);
-            if (key.Length == 0)
-                key = $"{(candidate.Provider ?? string.Empty)}\u0000{candidate.Id ?? string.Empty}";
+            var provider = (candidate.Provider ?? string.Empty).Trim();
+            var number = NormalizeCatalogNumber(candidate.Number);
+            var key = number.Length == 0
+                ? $"{provider}\u0000{candidate.Id ?? string.Empty}"
+                : $"{provider}\u0000{number}";
 
             if (!unique.TryGetValue(key, out var current) || IsBetter(candidate, current))
                 unique[key] = candidate;
