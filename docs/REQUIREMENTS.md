@@ -1,8 +1,9 @@
 # Jellyfin plugin requirements
 
 Status: **implemented in plugin 0.2.0.0; Jellyfin 12 smoke and full
-mock-backend library refresh verification passed; live metaX verification
-pending**.
+mock-backend library refresh verification passed; live metaX search and image
+endpoint verification passed. A full library refresh against the live backend
+still needs to be repeated in Jellyfin.**
 
 Backend project: [strange-dragon/metaX](https://github.com/strange-dragon/metaX).
 This repository is the plugin-side implementation project; it must not add a
