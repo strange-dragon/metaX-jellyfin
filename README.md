@@ -21,7 +21,7 @@ Jellyfin library
 | Component | Version |
 | --- | --- |
 | Jellyfin | `12.x` |
-| Plugin | `0.1.0.0` |
+| Plugin | `0.2.0.0` |
 | metaX backend | `0.1.0+` (MetaTube-compatible `/v1` API) |
 | Plugin target ABI | `12.0.0.0` |
 | Target framework | `net10.0` |
@@ -32,13 +32,18 @@ on Jellyfin `12.2`.
 ## Features
 
 - Movie search, movie detail, and primary/thumb/backdrop image providers.
+- Movie metadata for `Movies` / `Mixed content` libraries and series metadata
+  for `Shows` libraries, including artwork.
+- Exact catalog-number search filtering, so a query such as `SSIS-001` does
+  not return an entire JavDB series.
 - Actor search/detail and Person images.
 - Category-aware provider routing for Jellyfin libraries.
 - Request-scoped provider cookies through the
   `X-MetaX-Provider-Cookies` header.
 - Provider catalog and settings page loaded from the backend.
-- Signed local image proxy for Jellyfin Person images, so actor image downloads
-  can carry provider cookies without exposing them in URLs.
+- Signed same-origin image proxy for browser-visible search thumbnails and
+  Jellyfin Person images, so actor/image downloads can carry provider cookies
+  without exposing them in URLs and HTTP backends work behind HTTPS Jellyfin.
 - Redirect hardening: credentials are removed when a redirect leaves the
   configured MetaX origin.
 - Provider alias handling for `DMM → FANZA`, `MGStage → MGS`, and
@@ -52,9 +57,8 @@ on Jellyfin `12.2`.
 - HTTPS between Jellyfin and the backend whenever provider cookies are used.
 - .NET SDK `10.0` only if you build the plugin from source.
 
-The metaX backend has no authentication. Leave the plugin **Token** blank.
-The field remains available for MetaTube-compatible backends that require a
-bearer token.
+The metaX backend has no authentication and the plugin has no token setting.
+Keep the backend reachable from Jellyfin; no additional credentials are needed.
 
 ## Installation
 
@@ -96,7 +100,7 @@ dotnet build Jellyfin.Plugin.MetaX/Jellyfin.Plugin.MetaX.csproj -c Release
 The Release build produces:
 
 ```text
-Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.1.0.0.zip
+Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.0.zip
 ```
 
 The archive contains `MetaX.dll` and `meta.json`. Stop Jellyfin, create a
@@ -107,17 +111,17 @@ Common default locations:
 
 | Installation | Plugin directory |
 | --- | --- |
-| Linux package | `/var/lib/jellyfin/plugins/MetaX_0.1.0.0/` |
-| Windows | `%ProgramData%\Jellyfin\Server\plugins\MetaX_0.1.0.0\` |
-| Docker | `/config/plugins/MetaX_0.1.0.0/` |
+| Linux package | `/var/lib/jellyfin/plugins/MetaX_0.2.0.0/` |
+| Windows | `%ProgramData%\Jellyfin\Server\plugins\MetaX_0.2.0.0\` |
+| Docker | `/config/plugins/MetaX_0.2.0.0/` |
 
 Example for a Linux package installation:
 
 ```bash
-sudo mkdir -p /var/lib/jellyfin/plugins/MetaX_0.1.0.0
-sudo unzip -o Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.1.0.0.zip \
-  -d /var/lib/jellyfin/plugins/MetaX_0.1.0.0
-sudo chown -R jellyfin:jellyfin /var/lib/jellyfin/plugins/MetaX_0.1.0.0
+sudo mkdir -p /var/lib/jellyfin/plugins/MetaX_0.2.0.0
+sudo unzip -o Jellyfin.Plugin.MetaX/bin/Jellyfin.MetaX@v0.2.0.0.zip \
+  -d /var/lib/jellyfin/plugins/MetaX_0.2.0.0
+sudo chown -R jellyfin:jellyfin /var/lib/jellyfin/plugins/MetaX_0.2.0.0
 sudo systemctl restart jellyfin
 ```
 
@@ -133,12 +137,12 @@ into Jellyfin's `/config/plugins` directory.
 With a host directory mounted at `/config/plugins`:
 
 ```bash
-mkdir -p ./jellyfin/config/plugins/MetaX_0.1.0.0
+mkdir -p ./jellyfin/config/plugins/MetaX_0.2.0.0
 
 cp Jellyfin.Plugin.MetaX/bin/Release/net10.0/MetaX.dll \
-  ./jellyfin/config/plugins/MetaX_0.1.0.0/
+  ./jellyfin/config/plugins/MetaX_0.2.0.0/
 cp Jellyfin.Plugin.MetaX/meta.json \
-  ./jellyfin/config/plugins/MetaX_0.1.0.0/
+  ./jellyfin/config/plugins/MetaX_0.2.0.0/
 
 docker compose restart jellyfin
 ```
@@ -166,8 +170,10 @@ Open **Dashboard → Plugins → MetaX** after Jellyfin has loaded the plugin.
 
 - **Server**: full base URL of the metaX backend, such as
   `https://metax.example.com` or `http://127.0.0.1:18080`.
-- **Token**: leave blank for metaX. Only set this for a MetaTube-compatible
-  backend that requires a bearer token. The metaX backend has no authentication.
+
+The settings page intentionally exposes only the server URL, library categories,
+and provider cookies. Image quality, cropping, templates, translation, badge,
+trailer, and substitution options use safe built-in defaults.
 
 Use the backend's `/v1/metax/status` endpoint to verify connectivity:
 
@@ -218,7 +224,8 @@ For movie search, movie detail, and movie image requests, the plugin:
 2. reads the category-to-provider mapping from `/v1/metax/status`;
 3. sends only the cookies for providers in that category;
 4. passes the category to the backend;
-5. applies the configured API token if one is set (blank for metaX).
+5. filters catalog-number search results to the exact number and removes
+   duplicate provider rows.
 
 ### Enable the metadata provider
 
@@ -229,17 +236,25 @@ In each Jellyfin library:
 3. save the library settings;
 4. run **Scan library** or **Refresh metadata**.
 
+Use a **Movies** or **Mixed content** library for ordinary movie items. A
+**Shows** library is also supported: MetaX appears as a series metadata
+provider, and each title folder is mapped to one metaX movie record. For best
+results, name the folder with the catalog number, for example `SSIS-001`.
+Episodes inherit the series artwork; the backend is movie-oriented, so one
+MetaX record is used per series folder.
+
 ## Security
 
 - Provider cookies are credentials. Do not put them in URLs, screenshots, issue
-  reports, or repository files. The metaX backend itself has no authentication.
+  reports, or repository files. The metaX backend itself has no authentication,
+  and the plugin does not provide or require a token.
 - The plugin stores provider cookies in Jellyfin's plugin XML configuration in
   plaintext. Protect the Jellyfin configuration directory with filesystem
   permissions.
 - Use HTTPS between Jellyfin and the backend; metadata and provider cookies are
   not encrypted otherwise.
 - Provider cookie headers are limited to 16 KiB. CR/LF characters are rejected.
-- Cross-origin redirects strip both provider cookies and the bearer token.
+- Cross-origin redirects strip provider cookies and any authorization header.
 - The signed Person-image proxy is anonymous because Jellyfin's image downloader
   has no user context; the signature prevents it from becoming an open proxy.
 
@@ -254,22 +269,28 @@ curl -i http://backend-host:18080/v1/providers
 curl -i http://backend-host:18080/v1/metax/status
 ```
 
-Then verify the **Server** URL in the plugin settings. Existing provider names
-remain editable if the catalog cannot be fetched.
+Then verify the **Server** URL in the plugin settings. If the catalog cannot be
+fetched, configured provider names are still shown and you can add a provider
+manually with **Add provider**.
 
-### Requests return 401 (authenticated backend)
+### Search returns a long list of unrelated JavDB titles
 
-If you are using a MetaTube-compatible backend that requires a bearer token,
-its **Token** value in the plugin is blank or different. Set the same value in
-both places. The metaX backend does not require a token.
+The plugin keeps only exact catalog-number matches when the query looks like a
+catalog number. If the backend is old, update it to a build that includes the
+JavDB exact-search filter; otherwise the plugin still filters the returned list
+client-side.
 
 ### Metadata works but images do not
 
-- Confirm the backend image routes are reachable from Jellyfin.
+- Confirm the backend image routes are reachable from Jellyfin. Search
+  thumbnails are proxied through Jellyfin, so they require the plugin image
+  endpoint rather than direct browser access to an HTTP backend.
 - If Person images fail, verify that Jellyfin's local HTTP API is reachable from
   the Jellyfin process.
 - Check the Jellyfin log for `MetaX` image-proxy errors.
 - Do not configure external image hosts as the backend URL.
+- For a **Shows** library, confirm MetaX is enabled as both a series metadata
+  provider and an image provider. The image provider supports `Series` items.
 
 ### Provider cookies are not applied
 
@@ -290,8 +311,8 @@ dotnet build Jellyfin.Plugin.MetaX/Jellyfin.Plugin.MetaX.csproj -c Release
 
 The test suite uses mocked HTTP responses and does not require a live metaX
 server. It covers category filtering, provider aliases, cookie-header limits,
-configuration normalization, image requests, signed image-proxy tokens, and
-redirect credential scoping.
+configuration normalization, image requests, signed image-proxy tokens, exact
+catalog-number filtering, and redirect credential scoping.
 
 ## Attribution and license
 

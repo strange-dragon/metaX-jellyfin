@@ -22,7 +22,7 @@ public class MetaXApiClientTests
         var request = Assert.Single(handler.Requests);
         Assert.Equal("http://metax.test/v1/movies/search?q=ABC-123&fallback=True&category=censored",
             request.RequestUri!.ToString());
-        Assert.Equal("Bearer test-token", request.Headers.Authorization?.ToString());
+        Assert.Null(request.Headers.Authorization);
         Assert.Equal("""{"JavDB":"javdb=1"}""", GetCookieHeader(request));
     }
 
@@ -234,7 +234,6 @@ public class MetaXApiClientTests
         return new PluginConfiguration
         {
             Server = "http://metax.test",
-            Token = "test-token",
             ProviderCookies = new List<ProviderCookieEntry>
             {
                 new() { Provider = "JavDB", Cookie = javDbCookie },

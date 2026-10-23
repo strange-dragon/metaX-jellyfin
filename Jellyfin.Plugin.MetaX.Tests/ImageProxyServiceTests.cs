@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 
 namespace Jellyfin.Plugin.MetaX.Tests;
 
@@ -47,6 +48,40 @@ public class ImageProxyServiceTests
             () => "http://127.0.0.1:8096");
 
         Assert.False(service.TryReadToken(token, out _));
+    }
+
+    [Fact]
+    public void CreateDisplayUrl_UsesCurrentHttpsRequestOrigin()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "https";
+        context.Request.Host = new HostString("jellyfin.example.com");
+        context.Request.PathBase = new PathString("/jellyfin");
+
+        var service = new ImageProxyService(
+            new PassthroughDataProtectionProvider(),
+            () => "http://127.0.0.1:8096",
+            new HttpContextAccessor { HttpContext = context });
+
+        var url = service.CreateDisplayUrl("http://metax.test/image", "censored");
+
+        Assert.StartsWith("https://jellyfin.example.com/jellyfin/Plugins/MetaX/Images?token=", url);
+        var token = url[(url.IndexOf("token=", StringComparison.Ordinal) + "token=".Length)..];
+        Assert.True(service.TryReadToken(token, out var payload));
+        Assert.Equal("http://metax.test/image", payload.Url);
+        Assert.Equal("censored", payload.Category);
+    }
+
+    [Fact]
+    public void CreateDisplayUrl_FallsBackToRelativePathWithoutRequest()
+    {
+        var service = new ImageProxyService(
+            new PassthroughDataProtectionProvider(),
+            () => "http://127.0.0.1:8096");
+
+        var url = service.CreateDisplayUrl("http://metax.test/image", null);
+
+        Assert.StartsWith("/Plugins/MetaX/Images?token=", url);
     }
 
     [Fact]

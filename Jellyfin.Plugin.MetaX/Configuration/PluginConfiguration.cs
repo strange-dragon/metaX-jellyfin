@@ -27,12 +27,6 @@ public class PluginConfiguration : BasePluginConfiguration
 #endif
     public string Server { get; set; } = string.Empty;
 
-#if __EMBY__
-    [DisplayName("Token")]
-    [Description("Access token for the MetaX Server, or blank if no token is set by the backend.")]
-#endif
-    public string Token { get; set; } = string.Empty;
-
     /// <summary>
     /// Provider cookie entries. Stored as a list because Jellyfin's XML
     /// configuration serializer cannot round-trip Dictionary&lt;string,string&gt;.
@@ -107,31 +101,6 @@ public class PluginConfiguration : BasePluginConfiguration
     [Required]
 #endif
     public int DefaultImageQuality { get; set; } = 90;
-
-#if __EMBY__
-    [DisplayName("Enable movie provider filter")]
-    [Description("Filter and reorder search results from movie providers.")]
-#endif
-    public bool EnableMovieProviderFilter { get; set; } = false;
-
-#if __EMBY__
-    [DisplayName("Movie provider filter")]
-    [Description(
-        "Provider names are case-insensitive, with decreasing precedence from left to right, separated by commas.")]
-#endif
-    public string RawMovieProviderFilter
-    {
-        get => _movieProviderFilter?.Any() == true ? string.Join(',', _movieProviderFilter) : string.Empty;
-        set => _movieProviderFilter = value?.Split(',').Select(s => s.Trim()).Where(s => s.Any())
-            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-    }
-
-    public List<string> GetMovieProviderFilter()
-    {
-        return _movieProviderFilter;
-    }
-
-    private List<string> _movieProviderFilter;
 
 #if __EMBY__
     [DisplayName("Enable template")]

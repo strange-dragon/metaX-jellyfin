@@ -63,15 +63,27 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         var pid = info.GetPid(Plugin.ProviderId);
         if (string.IsNullOrWhiteSpace(pid.Id) || string.IsNullOrWhiteSpace(pid.Provider))
         {
-            // Search movies and pick the first result.
+            // Search movies and pick the first exact result.
             var firstResult = (await GetSearchResults(info, cancellationToken)).FirstOrDefault();
-            if (firstResult != null) pid = firstResult.GetPid(Plugin.ProviderId);
+            if (firstResult != null)
+                pid = firstResult.GetPid(Plugin.ProviderId);
+        }
+
+        if (string.IsNullOrWhiteSpace(pid.Id) || string.IsNullOrWhiteSpace(pid.Provider))
+        {
+            Logger.Warn("No matching movie found for: {0}", info.Name);
+            return new MetadataResult<Movie>();
         }
 
         Logger.Info("Get movie info: {0}", pid.ToString());
 
         var category = _categories.Resolve(info.Path);
         var m = await Api.GetMovieInfoAsync(pid.Provider, pid.Id, category, cancellationToken);
+        if (m == null)
+        {
+            Logger.Warn("MetaX returned no movie for: {0}", pid.ToString());
+            return new MetadataResult<Movie>();
+        }
 
         // Preserve original title.
         var originalTitle = m.Title;
@@ -227,50 +239,58 @@ public class MovieProvider : BaseProvider, IRemoteMetadataProvider<Movie, MovieI
         {
             // Exact search.
             Logger.Info("Search for movie: {0}", pid.ToString());
-            searchResults.Add(await Api.GetMovieInfoAsync(pid.Provider, pid.Id,
-                pid.Update != true, category, cancellationToken));
+            var movie = await Api.GetMovieInfoAsync(pid.Provider, pid.Id,
+                pid.Update != true, category, cancellationToken);
+            if (movie != null)
+                searchResults.Add(movie);
         }
 
-        if (Configuration.EnableMovieProviderFilter)
-        {
-            if (Configuration.GetMovieProviderFilter() is { } filter &&
-                filter.Any()) // Apply only if filter is not empty.
-            {
-                // Filter out mismatched results.
-                searchResults.RemoveAll(m => !filter.Contains(m.Provider, StringComparer.OrdinalIgnoreCase));
-                // Reorder results by stable sort.
-                searchResults = searchResults.OrderBy(m =>
-                    filter.FindIndex(s => s.Equals(m.Provider, StringComparison.OrdinalIgnoreCase))).ToList();
-            }
-            else
-            {
-                Logger.Warn("Movie provider filter enabled but never used");
-            }
-        }
+        searchResults = SearchResultHelper.FilterAndDeduplicate(searchResults, info.Name);
 
         var results = new List<RemoteSearchResult>();
-        if (!searchResults.Any())
+        if (searchResults.Count == 0)
         {
-            Logger.Warn("Movie not found or has been filtered: {0}", pid.Id);
+            Logger.Warn("Movie not found: {0}", info.Name);
             return results;
         }
 
         foreach (var m in searchResults)
         {
+            var displayName = SearchResultHelper.BuildDisplayName(m);
             var result = new RemoteSearchResult
             {
-                Name = $"[{m.Provider}] {m.Number} {m.Title}",
+                Name = string.IsNullOrWhiteSpace(m.Provider) ? displayName : $"[{m.Provider}] {displayName}",
                 SearchProviderName = Name,
                 PremiereDate = m.ReleaseDate.GetValidDateTime(),
                 ProductionYear = m.ReleaseDate.GetValidYear(),
-                ImageUrl = Api.GetPrimaryImageApiUrl(m.Provider, m.Id, m.ThumbUrl, 1.0, true,
-                    category: category)
+                ImageUrl = GetSearchImageUrl(
+                    Api.GetPrimaryImageApiUrl(m.Provider, m.Id, m.ThumbUrl, 1.0, false, category: category),
+                    category)
             };
             result.SetPid(Name, m.Provider, m.Id, pid.Position);
             results.Add(result);
         }
 
         return results;
+    }
+
+    private string GetSearchImageUrl(string imageUrl, string category)
+    {
+        if (_imageProxy == null || string.IsNullOrWhiteSpace(imageUrl))
+            return imageUrl;
+
+        try
+        {
+            // Jellyfin renders search-result thumbnails in the browser. A
+            // same-origin proxy URL avoids mixed-content blocking when the
+            // backend uses plain HTTP behind an HTTPS Jellyfin installation.
+            return _imageProxy.CreateDisplayUrl(imageUrl, category);
+        }
+        catch (Exception e)
+        {
+            Logger.Warn("Falling back to direct search image URL: {Message}", e.Message);
+            return imageUrl;
+        }
     }
 
     private async Task SetActorImageUrl(PersonInfo actor, CancellationToken cancellationToken)

@@ -51,7 +51,7 @@ internal sealed class SafeRedirectHandler : DelegatingHandler
             if (!_isMetaXUrl(target.ToString()))
             {
                 // A redirect can target an external CDN or an attacker-controlled
-                // host. Never carry provider cookies or the metaX bearer token
+                // host. Never carry provider cookies or authorization headers
                 // across that boundary.
                 nextRequest.Headers.Remove(MetaXApiClient.ProviderCookiesHeaderName);
                 nextRequest.Headers.Authorization = null;

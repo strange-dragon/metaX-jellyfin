@@ -1,5 +1,4 @@
 using System.Collections.Specialized;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Web;
@@ -72,14 +71,14 @@ public sealed class MetaXApiClient
         string category = null)
     {
         return ComposeImageApiUrl(PrimaryImageApi, provider, id,
-            ratio: Configuration.PrimaryImageRatio, position: position, badge: badge, category: category);
+            ratio: GetPrimaryImageRatio(), position: position, badge: badge, category: category);
     }
 
     public string GetPrimaryImageApiUrl(string provider, string id, string url, double position = -1,
         bool auto = false, string badge = default, string category = null)
     {
         return ComposeImageApiUrl(PrimaryImageApi, provider, id, url,
-            Configuration.PrimaryImageRatio, position, auto, badge, category);
+            GetPrimaryImageRatio(), position, auto, badge, category);
     }
 
     public string GetThumbImageApiUrl(string provider, string id, string category = null)
@@ -135,7 +134,7 @@ public sealed class MetaXApiClient
         CancellationToken cancellationToken)
     {
         var apiUrl = ComposeInfoApiUrl(ActorInfoApi, provider, id, lazy);
-        return GetDataAsync<ActorInfo>(apiUrl, true, null, provider, cancellationToken,
+        return GetDataAsync<ActorInfo>(apiUrl, null, provider, cancellationToken,
             allowUnscopedCookies: true);
     }
 
@@ -149,7 +148,7 @@ public sealed class MetaXApiClient
         CancellationToken cancellationToken)
     {
         var apiUrl = ComposeInfoApiUrl(MovieInfoApi, provider, id, lazy, category);
-        return GetDataAsync<MovieInfo>(apiUrl, true, category, provider, cancellationToken);
+        return GetDataAsync<MovieInfo>(apiUrl, category, provider, cancellationToken);
     }
 
     public Task<List<ActorSearchResult>> SearchActorAsync(string q, CancellationToken cancellationToken)
@@ -167,7 +166,7 @@ public sealed class MetaXApiClient
         CancellationToken cancellationToken)
     {
         var apiUrl = ComposeSearchApiUrl(ActorSearchApi, q, provider, fallback);
-        return GetDataAsync<List<ActorSearchResult>>(apiUrl, true, null, provider, cancellationToken,
+        return GetDataAsync<List<ActorSearchResult>>(apiUrl, null, provider, cancellationToken,
             allowUnscopedCookies: true);
     }
 
@@ -187,14 +186,14 @@ public sealed class MetaXApiClient
         string category, CancellationToken cancellationToken)
     {
         var apiUrl = ComposeSearchApiUrl(MovieSearchApi, q, provider, fallback, category);
-        return GetDataAsync<List<MovieSearchResult>>(apiUrl, true, category, provider, cancellationToken);
+        return GetDataAsync<List<MovieSearchResult>>(apiUrl, category, provider, cancellationToken);
     }
 
     public Task<TranslationInfo> TranslateAsync(string q, string from, string to, string engine,
         NameValueCollection nv, CancellationToken cancellationToken)
     {
         var apiUrl = ComposeTranslateApiUrl(TranslateApi, q, from, to, engine, nv);
-        return GetDataAsync<TranslationInfo>(apiUrl, false, null, null, cancellationToken,
+        return GetDataAsync<TranslationInfo>(apiUrl, null, null, cancellationToken,
             includeCookies: false);
     }
 
@@ -231,7 +230,7 @@ public sealed class MetaXApiClient
         try
         {
             var apiUrl = ComposeUrl(ProvidersApi, new NameValueCollection());
-            return await GetDataAsync<ProvidersInfo>(apiUrl, true, null, null, cancellationToken,
+            return await GetDataAsync<ProvidersInfo>(apiUrl, null, null, cancellationToken,
                 includeCookies: false).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -300,14 +299,28 @@ public sealed class MetaXApiClient
 
     private string GetManifestKey()
     {
-        var config = Configuration;
-        return (config.Server ?? string.Empty) + "\n" + (config.Token ?? string.Empty);
+        return Configuration.Server ?? string.Empty;
+    }
+
+    // Older configurations could contain 0 for either value after an empty
+    // settings-page field was serialized. Both values are hidden now, so clamp
+    // them here instead of sending an invalid crop/quality to the backend.
+    private double GetPrimaryImageRatio()
+    {
+        var ratio = Configuration.PrimaryImageRatio;
+        return ratio > 0 ? ratio : -1;
+    }
+
+    private int GetImageQuality()
+    {
+        var quality = Configuration.DefaultImageQuality;
+        return quality is >= 1 and <= 100 ? quality : 90;
     }
 
     private async Task<ProviderManifest> FetchManifestAsync(CancellationToken cancellationToken)
     {
         var apiUrl = ComposeUrl(StatusApi, new NameValueCollection());
-        var status = await GetDataAsync<MetaXStatusInfo>(apiUrl, true, null, null, cancellationToken,
+        var status = await GetDataAsync<MetaXStatusInfo>(apiUrl, null, null, cancellationToken,
             includeCookies: false).ConfigureAwait(false);
 
         var routes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
@@ -324,7 +337,7 @@ public sealed class MetaXApiClient
         };
     }
 
-    private async Task<T> GetDataAsync<T>(string url, bool requireAuth, string category, string explicitProvider,
+    private async Task<T> GetDataAsync<T>(string url, string category, string explicitProvider,
         CancellationToken cancellationToken, bool includeCookies = true, bool allowUnscopedCookies = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -332,9 +345,6 @@ public sealed class MetaXApiClient
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.TryAddWithoutValidation("Accept", "application/json");
         request.Headers.TryAddWithoutValidation("User-Agent", DefaultUserAgent);
-
-        if (requireAuth && !string.IsNullOrWhiteSpace(Configuration.Token))
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Configuration.Token);
 
         if (includeCookies)
             await AddProviderCookiesAsync(request, category, explicitProvider, allowUnscopedCookies,
@@ -463,7 +473,7 @@ public sealed class MetaXApiClient
             { "pos", position.ToString("R") },
             { "auto", auto.ToString() },
             { "badge", badge },
-            { "quality", Configuration.DefaultImageQuality.ToString() },
+            { "quality", GetImageQuality().ToString() },
             { "category", category }
         });
     }

@@ -1,6 +1,7 @@
 using Jellyfin.Plugin.MetaX.Extensions;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
@@ -42,6 +43,9 @@ public class MovieImageProvider : BaseProvider, IRemoteImageProvider, IHasOrder
 
         var category = _categories.Resolve(item);
         var m = await Api.GetMovieInfoAsync(pid.Provider, pid.Id, category, cancellationToken);
+        if (m == null)
+            return Enumerable.Empty<RemoteImageInfo>();
+
         var images = new List<RemoteImageInfo>
         {
             new()
@@ -94,7 +98,9 @@ public class MovieImageProvider : BaseProvider, IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        return item is Movie;
+        // Shows libraries expose Series items. Supporting them here lets the
+        // same MetaX movie record provide series artwork as well.
+        return item is Movie or Series;
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)

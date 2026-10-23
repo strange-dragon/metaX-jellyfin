@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 
 namespace Jellyfin.Plugin.MetaX;
 
@@ -15,17 +16,56 @@ public sealed class ImageProxyService
 
     private readonly IDataProtector _protector;
     private readonly Func<string> _localApiBaseUrl;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ImageProxyService(IDataProtectionProvider dataProtectionProvider, Func<string> localApiBaseUrl)
+    public ImageProxyService(IDataProtectionProvider dataProtectionProvider, Func<string> localApiBaseUrl,
+        IHttpContextAccessor httpContextAccessor = null)
     {
         ArgumentNullException.ThrowIfNull(dataProtectionProvider);
         ArgumentNullException.ThrowIfNull(localApiBaseUrl);
 
         _protector = dataProtectionProvider.CreateProtector(ProtectorPurpose);
         _localApiBaseUrl = localApiBaseUrl;
+        _httpContextAccessor = httpContextAccessor;
     }
 
+    /// <summary>
+    /// Creates a proxy URL for server-side downloads (for example Person
+    /// images). The URL points at Jellyfin's local API so the HTTP client can
+    /// reach it even when the public hostname is not resolvable internally.
+    /// </summary>
     public string CreateUrl(string imageUrl, string category)
+    {
+        var token = CreateToken(imageUrl, category);
+        var baseUrl = _localApiBaseUrl();
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new InvalidOperationException("Jellyfin's local API URL is unavailable.");
+
+        return $"{baseUrl.TrimEnd('/')}/Plugins/MetaX/Images?token={token}";
+    }
+
+    /// <summary>
+    /// Creates a proxy URL for an image that is rendered by the browser (for
+    /// example a remote-search thumbnail). Using the current request origin
+    /// keeps the image same-origin with Jellyfin, which avoids mixed-content
+    /// blocking when the backend is configured with a plain HTTP URL.
+    /// </summary>
+    public string CreateDisplayUrl(string imageUrl, string category)
+    {
+        var token = CreateToken(imageUrl, category);
+        var request = _httpContextAccessor?.HttpContext?.Request;
+        if (request != null)
+        {
+            var pathBase = request.PathBase.HasValue ? request.PathBase.Value : string.Empty;
+            return $"{request.Scheme}://{request.Host}{pathBase}/Plugins/MetaX/Images?token={token}";
+        }
+
+        // Remote search always runs in a request, but keep a safe relative
+        // fallback for other call sites.
+        return $"/Plugins/MetaX/Images?token={token}";
+    }
+
+    private string CreateToken(string imageUrl, string category)
     {
         if (string.IsNullOrWhiteSpace(imageUrl))
             throw new ArgumentException("Image URL is required.", nameof(imageUrl));
@@ -37,12 +77,7 @@ public sealed class ImageProxyService
         };
 
         var protectedBytes = _protector.Protect(JsonSerializer.SerializeToUtf8Bytes(payload));
-        var token = Base64UrlEncode(protectedBytes);
-        var baseUrl = _localApiBaseUrl();
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            throw new InvalidOperationException("Jellyfin's local API URL is unavailable.");
-
-        return $"{baseUrl.TrimEnd('/')}/Plugins/MetaX/Images?token={token}";
+        return Base64UrlEncode(protectedBytes);
     }
 
     public bool TryReadToken(string token, out ImageProxyPayload payload)

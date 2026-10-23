@@ -1,7 +1,8 @@
 # Jellyfin plugin requirements
 
-Status: **implemented in code; Jellyfin 12 smoke and full mock-backend
-library refresh verification passed; live metaX verification pending**.
+Status: **implemented in plugin 0.2.0.0; Jellyfin 12 smoke and full
+mock-backend library refresh verification passed; live metaX verification
+pending**.
 
 Backend project: [strange-dragon/metaX](https://github.com/strange-dragon/metaX).
 This repository is the plugin-side implementation project; it must not add a
@@ -15,7 +16,8 @@ Pinned plugin reference for this record:
 `metatube-community/jellyfin-plugin-metatube` at
 `f7c1f336fc2bd3b35b82af7c6e69da09a196e3d2`. That revision only stores the
 MetaTube server URL and token; it has no provider-cookie fields or
-pass-through transport.
+pass-through transport. The metaX fork intentionally removes the token
+setting because the metaX backend is unauthenticated.
 
 ## 1. Goal
 
@@ -117,10 +119,8 @@ Rules:
   - reviews;
   - primary/thumb/backdrop images;
   - any future endpoint that may call a provider.
-- Keep the existing authentication header behavior unchanged. The cookie header
-  is not a replacement for backend authentication. metaX itself has no
-  authentication; an optional bearer token remains supported for other
-  MetaTube-compatible backends.
+- Send no `Authorization` header. The plugin targets the unauthenticated metaX
+  backend and no longer exposes a token setting.
 - Do not put cookies in the query string, URL path, or image URL.
 - Do not forward the header to arbitrary image URLs; it is only for requests
   to the MetaTube server.
@@ -128,8 +128,7 @@ Rules:
   cookie values and malformed or trailing JSON.
 - The backend accepts at most 16 KiB for the raw header value.
 
-Example request against metaX (add `Authorization: Bearer <token>` only when
-using a backend that requires it):
+Example request against metaX:
 
 ```http
 GET /v1/movies/JavDB/ABC-123?lazy=false HTTP/1.1
@@ -159,7 +158,7 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
 - Do not send the header to third-party URLs.
 - Disable automatic HTTP redirects and follow them manually with a bounded hop
   count. Re-check every redirect target against the configured metaX origin and
-  remove both `X-MetaX-Provider-Cookies` and `Authorization` before any
+  remove `X-MetaX-Provider-Cookies` (and any authorization header) before any
   cross-origin request.
 - Clearing a cookie in the plugin takes effect on the next request; there is no
   server-side state to invalidate.
@@ -201,8 +200,18 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
       endpoint on Jellyfin `12.2`, including category-scoped cookie headers.
 - [x] Proxy Jellyfin Person images through a signed local endpoint so actor
       image downloads carry provider cookies.
-- [x] Disable automatic redirects and strip provider cookies plus the bearer
-      token when a redirect leaves the configured metaX origin.
+- [x] Disable automatic redirects and strip provider cookies (and any
+      authorization header) when a redirect leaves the configured metaX origin.
+- [x] Remove the token setting from configuration, API client, settings page,
+      tests, and documentation.
+- [x] Reduce the settings page to server, library categories, and provider
+      cookies.
+- [x] Filter catalog-number searches to exact matches and deduplicate provider
+      rows.
+- [x] Add a series metadata provider and Series image support for Jellyfin
+      `Shows` libraries.
+- [x] Proxy browser-visible search images through the same-origin plugin image
+      endpoint.
 - [ ] Repeat the full refresh against a live metaX server.
 
 ## 8. Implementation notes
@@ -218,8 +227,8 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
   downloads use the same scope.
 - `SafeRedirectHandler` wraps the plugin HTTP handler with
   `AllowAutoRedirect = false`, follows redirects itself, caps them at five
-  hops, and removes provider cookies and the bearer token on any hop outside
-  the configured metaX origin.
+  hops, and removes provider cookies (and any authorization header) on any hop
+  outside the configured metaX origin.
 - `MetaXController` exposes the non-secret provider catalog to the settings
   page at `Plugins/MetaX/Providers`; the controller requires an elevated
   Jellyfin user.
@@ -236,6 +245,15 @@ X-MetaX-Provider-Cookies: {"JavDB":"session=abc; cf_clearance=def"}
   The endpoint is anonymous because Jellyfin's internal downloader has no user
   context. The live Jellyfin `12.2` check confirmed that the resulting
   `Gfriends` actor-image request carried `X-MetaX-Provider-Cookies`.
+- `SearchResultHelper` normalizes catalog numbers, keeps exact matches when a
+  catalog-like query has them, and collapses duplicate provider rows (preferring
+  the merged `MetaX` candidate).
+- `SeriesProvider` exposes the same MetaX movie record as a Jellyfin `Series`
+  item so a `Shows` library can use MetaX. `MovieImageProvider` supports both
+  `Movie` and `Series`.
+- `ImageProxyService.CreateDisplayUrl` builds search-thumbnail proxy URLs from
+  the active Jellyfin request origin; `CreateUrl` keeps the loopback URL used by
+  server-side Person-image downloads.
 - The plugin targets `net10.0` and Jellyfin `12.x`. Jellyfin `10.11` uses
   `net9.0`; supporting both in one package would require a separate build and
   is not part of this change.
